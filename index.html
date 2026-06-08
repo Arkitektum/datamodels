@@ -1341,7 +1341,7 @@
                                 <tr><td class="field">eiendommerSomInngaarIPlanomraadet</td><td class="type">EiendomListe</td><td>Eiendommer innenfor planområdet</td></tr>
                                 <tr><td class="field">eksisterendePlanerSomBeroeres</td><td class="type">EksisterendePlanSomBeroeresListe</td><td>Eksisterende arealplaner som berøres</td></tr>
                                 <tr><td class="field">kommune</td><td class="type">AktoerType</td><td>Kommunen som sender varselet</td></tr>
-                                <tr><td class="field">forslagstiller</td><td class="type">AktoerType</td><td>Forslagsstiller for planforslaget</td></tr>
+                                <tr><td class="field">forslagsstiller</td><td class="type">AktoerType</td><td>Forslagsstiller for planforslaget</td></tr>
                                 <tr><td class="field">plankonsulent</td><td class="type">AktoerType</td><td>Konsulent som har utarbeidet planforslaget</td></tr>
                                 <tr><td class="field">metadata</td><td class="type">MetadataType</td><td>Sluttbrukersystem, prosjekt-info, foretrukket språk</td></tr>
                                 <tr><td class="field">planforslag</td><td class="type">Arealplan</td><td>Identifikasjon av selve planforslaget</td></tr>
@@ -1428,7 +1428,7 @@
                         </details>
 
                         <details>
-                            <summary>AktoerType – kommune / forslagstiller </summary>
+                            <summary>AktoerType – kommune / forslagsstiller </summary>
                             <div class="inner">
                                 <table>
                                     <thead><tr><th style="width: 28%">Felt</th><th style="width: 22%">Type</th><th>Beskrivelse</th></tr></thead>
@@ -1623,13 +1623,13 @@
                                 <tr><td class="field">eiendommerSomInngaarIPlanomraadet.eiendom[0].adresse</td><td class="val">Hans Aanrudsvei 12, 0301 Oslo, NO (gatenavn=Hans Aanrudsvei, husnr=12)</td></tr>
                                 <tr><td class="field">eiendommerSomInngaarIPlanomraadet.eiendom[0].bygningsnummer</td><td class="val">123456789</td></tr>
                                 <tr><td class="field">eiendommerSomInngaarIPlanomraadet.eiendom[0].kommunenavn</td><td class="val">Oslo</td></tr>
-                                <tr><td class="field">eksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres[0].navn</td><td class="val">Reguleringsplan His Allé 2008</td></tr>
-                                <tr><td class="field">…EksisterendePlanSomBeroeres[0].plantype.kodeverdi</td><td class="val">35</td></tr>
-                                <tr><td class="field">…EksisterendePlanSomBeroeres[0].plantype.kodebeskrivelse</td><td class="val">Detaljregulering</td></tr>
-                                <tr><td class="field">…EksisterendePlanSomBeroeres[0].nasjonalArealplanId.kommunenummer</td><td class="val">0301</td></tr>
-                                <tr><td class="field">…EksisterendePlanSomBeroeres[0].nasjonalArealplanId.landkode</td><td class="val">NO</td></tr>
-                                <tr><td class="field">…EksisterendePlanSomBeroeres[0].nasjonalArealplanId.planId</td><td class="val">2008-001</td></tr>
-                                <tr><td class="field">…EksisterendePlanSomBeroeres[0].beskrivelseAvFoelger</td><td class="val">Felt B2 i gjeldende plan oppheves og erstattes av nytt boligområde i ny plan.</td></tr>
+                                <tr><td class="field">eksisterendePlanerSomBeroeres.eksisterendePlanSomBeroeres[0].navn</td><td class="val">Reguleringsplan His Allé 2008</td></tr>
+                                <tr><td class="field">…eksisterendePlanSomBeroeres[0].plantype.kodeverdi</td><td class="val">35</td></tr>
+                                <tr><td class="field">…eksisterendePlanSomBeroeres[0].plantype.kodebeskrivelse</td><td class="val">Detaljregulering</td></tr>
+                                <tr><td class="field">…eksisterendePlanSomBeroeres[0].nasjonalArealplanId.kommunenummer</td><td class="val">0301</td></tr>
+                                <tr><td class="field">…eksisterendePlanSomBeroeres[0].nasjonalArealplanId.landkode</td><td class="val">NO</td></tr>
+                                <tr><td class="field">…eksisterendePlanSomBeroeres[0].nasjonalArealplanId.planId</td><td class="val">2008-001</td></tr>
+                                <tr><td class="field">…eksisterendePlanSomBeroeres[0].beskrivelseAvFoelger</td><td class="val">Felt B2 i gjeldende plan oppheves og erstattes av nytt boligområde i ny plan.</td></tr>
                                 <tr><td class="field">plankonsulent.partstype.kodeverdi</td><td class="val">Organisasjon</td></tr>
                                 <tr><td class="field">plankonsulent.partstype.kodebeskrivelse</td><td class="val">Organisasjon</td></tr>
                                 <tr><td class="field">plankonsulent.navn</td><td class="val">Arkitektum AS</td></tr>
@@ -1781,7 +1781,7 @@
   &lt;/<span class="tag">eiendommerSomInngaarIPlanomraadet</span>&gt;
 
   &lt;<span class="tag">eksisterendePlanerSomBeroeres</span>&gt;
-    &lt;<span class="tag">EksisterendePlanSomBeroeres</span>&gt;
+    &lt;<span class="tag">eksisterendePlanSomBeroeres</span>&gt;
       &lt;<span class="tag">navn</span>&gt;Reguleringsplan His Allé 2008&lt;/<span class="tag">navn</span>&gt;
       &lt;<span class="tag">plantype</span>&gt;
         &lt;<span class="tag">kodeverdi</span>&gt;35&lt;/<span class="tag">kodeverdi</span>&gt;
@@ -1793,7 +1793,7 @@
         &lt;<span class="tag">planId</span>&gt;2008-001&lt;/<span class="tag">planId</span>&gt;
       &lt;/<span class="tag">nasjonalArealplanId</span>&gt;
       &lt;<span class="tag">beskrivelseAvFoelger</span>&gt;Felt B2 i gjeldende plan oppheves og erstattes av nytt boligområde i ny plan.&lt;/<span class="tag">beskrivelseAvFoelger</span>&gt;
-    &lt;/<span class="tag">EksisterendePlanSomBeroeres</span>&gt;
+    &lt;/<span class="tag">eksisterendePlanSomBeroeres</span>&gt;
   &lt;/<span class="tag">eksisterendePlanerSomBeroeres</span>&gt;
 
   &lt;<span class="tag">plankonsulent</span>&gt;
@@ -1844,7 +1844,7 @@
     &lt;/<span class="tag">kontaktperson</span>&gt;
   &lt;/<span class="tag">kommune</span>&gt;
 
-  &lt;<span class="tag">forslagstiller</span>&gt;
+  &lt;<span class="tag">forslagsstiller</span>&gt;
     &lt;<span class="tag">partstype</span>&gt;
       &lt;<span class="tag">kodeverdi</span>&gt;Organisasjon&lt;/<span class="tag">kodeverdi</span>&gt;
       &lt;<span class="tag">kodebeskrivelse</span>&gt;Organisasjon&lt;/<span class="tag">kodebeskrivelse</span>&gt;
@@ -1860,7 +1860,7 @@
     &lt;<span class="tag">telefonnummer</span>&gt;22123456&lt;/<span class="tag">telefonnummer</span>&gt;
     &lt;<span class="tag">mobilnummer</span>&gt;91111222&lt;/<span class="tag">mobilnummer</span>&gt;
     &lt;<span class="tag">epost</span>&gt;post@utbyggervest.no&lt;/<span class="tag">epost</span>&gt;
-  &lt;/<span class="tag">forslagstiller</span>&gt;
+  &lt;/<span class="tag">forslagsstiller</span>&gt;
 
   &lt;<span class="tag">metadata</span>&gt;
     &lt;<span class="tag">fraSluttbrukersystem</span>&gt;Vorpah&lt;/<span class="tag">fraSluttbrukersystem</span>&gt;
@@ -2001,7 +2001,7 @@
                                     </tr>
                                 </tbody>
                             </table>
-                            <p class="field-from">↑ eksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres[].{plantype, navn, beskrivelseAvFoelger}</p>
+                            <p class="field-from">↑ eksisterendePlanerSomBeroeres.eksisterendePlanSomBeroeres[].{plantype, navn, beskrivelseAvFoelger}</p>
 
                             <h3>Medvirkning i høringsperioden</h3>
                             <p>Åpent informasjonsmøte 15. juni, digital høring. <span class="field-from">← medvirkningIHoeringsperioden</span></p>
@@ -2186,7 +2186,7 @@
                                     <div class="letter-top">
                                         <div>
                                             <h2>Høring og offentlig ettersyn av oppheving av reguleringsplan</h2>
-                                            <p class="lead">I henhold til pbl. § 12-14 første ledd informerer vi om høring og offentlig ettersyn av forslag om å <strong>oppheve</strong> reguleringsplan <strong>[plannavn]</strong> <span class="field-from">← eksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres[].navn</span> i <strong>[kommune.navn]</strong> <span class="field-from">← kommune.navn</span>.</p>
+                                            <p class="lead">I henhold til pbl. § 12-14 første ledd informerer vi om høring og offentlig ettersyn av forslag om å <strong>oppheve</strong> reguleringsplan <strong>[plannavn]</strong> <span class="field-from">← eksisterendePlanerSomBeroeres.eksisterendePlanSomBeroeres[].navn</span> i <strong>[kommune.navn]</strong> <span class="field-from">← kommune.navn</span>.</p>
                                             <textarea class="editable-field" data-tmpl="hoffe-opph-rp" data-field="begrunnelse" rows="3" placeholder="[Begrunnelse for opphevingen — hvorfor planen ikke lenger skal gjelde, hva som blir liggende igjen]"></textarea>
                                             <p>Berørte parter har frist til <strong>[fristForUttalelse]</strong> <span class="field-from">← fristForUttalelse</span>.</p>
                                         </div>
@@ -2879,11 +2879,11 @@
         const REGEL_STATUSER = [
             { id: '',          navn: 'Ingen status', cls: '' },
             { id: 'utvikling', navn: 'Til utvikling/test', cls: 'st-utvikling' },
-            { id: 'nye',       navn: 'Nye',           cls: 'st-nye' },
+            { id: 'slettet',   navn: 'Slettet',       cls: 'st-slettet' },
             { id: 'avklares',  navn: 'Må avklares',   cls: 'st-avklares' },
             { id: 'testetok',  navn: 'Testet OK',     cls: 'st-testetok' },
             { id: 'feilet',    navn: 'Test feilet',   cls: 'st-feilet' },
-            { id: 'slettet',   navn: 'Slettet',       cls: 'st-slettet' },
+            { id: 'nye',       navn: 'Nye',           cls: 'st-nye' },
         ];
 
         // Grupper med sjekkpunkter. std = "Følger standard validering".
@@ -2933,64 +2933,64 @@
                 { p: "EiendommerSomInngaarIPlanomraadet.Eiendom.Utfylt", t: "Du må oppgi hvilken eiendom/hvilke eiendommer som inngår i planområdet.", r: "Feil", b: "eiendommerSomInngaarIPlanomraadet/eiendom{0}" },
                 { p: "EiendommerSomInngaarIPlanomraadet.Utfylt", t: "Du må oppgi minst én eiendom som inngår i planområdet.", r: "Feil", b: "eiendommerSomInngaarIPlanomraadet" },
             ]},
-            { g: "Forslagstiller", std: true, rules: [
-                { p: "Forslagstiller.Adresse.Adresselinje1.Utfylt", t: "Adresselinje 1 bør fylles ut for forslagsstiller.", r: "Advarsel", b: "forslagstiller/adresse/adresselinje1" },
-                { p: "Forslagstiller.Adresse.Landkode.Gyldig", t: "Landkoden '{0}' for forslagsstillers adresse er ikke gyldig.", r: "Advarsel", b: "forslagstiller/adresse/landkode" },
-                { p: "Forslagstiller.Adresse.Landkode.Norsk", t: "Landkoden til forslagsstillers adresse må være norsk.", r: "Advarsel", b: "forslagstiller/adresse/landkode" },
-                { p: "Forslagstiller.Adresse.Postnr.Gyldig", t: "Postnummeret '{0}' for forslagsstiller er ugyldig. Du kan sjekke riktig postnummer på http://adressesok.bring.no/", r: "Advarsel", b: "forslagstiller/adresse/postnr" },
-                { p: "Forslagstiller.Adresse.Postnr.KodelisteFinnes", t: "Postnummeret '{0}' til forslagsstiller ble ikke validert. Postnummeret kan være riktig, men en teknisk feil gjør at vi ikke kan bekrefte det.", r: "Advarsel", b: "forslagstiller/adresse/postnr" },
-                { p: "Forslagstiller.Adresse.Postnr.Poststed.Gyldig", t: "Postnummeret '{0}' for forslagsstiller stemmer ikke overens med poststedet '{1}'. Postnummeret er fra '{2}'. Du kan sjekke riktig postnummer/poststed på http://adressesok.bring.no/", r: "Advarsel", b: "forslagstiller/adresse/postnr", f: "forslagstiller/adresse/poststed" },
-                { p: "Forslagstiller.Adresse.Postnr.Utfylt", t: "Du bør fylle ut postnummeret til forslagsstiller.", r: "Advarsel", b: "forslagstiller/adresse/postnr" },
-                { p: "Forslagstiller.Adresse.Utfylt", t: "Adresse bør fylles ut for forslagsstiller.", r: "Advarsel", b: "forslagstiller/adresse" },
-                { p: "Forslagstiller.Epost.Gyldig", t: "E-postadresse '{0}' for forslagsstiller er ikke gyldig. Gyldig e-post skrives som navn@domene.no", r: "Feil", b: "forslagstiller/epost" },
-                { p: "Forslagstiller.Epost.Utfylt", t: "E-postadressen til forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagstiller/epost" },
-                { p: "Forslagstiller.Foedselsnummer.Dekryptert", t: "Fødselsnummeret til forslagsstiller kan ikke dekrypteres.", r: "Feil", b: "forslagstiller/foedselsnummer", f: "forslagstiller/partstype/kodeverdi = privatperson" },
-                { p: "Forslagstiller.Foedselsnummer.Gyldig", t: "Fødselsnummeret til forslagsstiller må være gyldig.", r: "Feil", b: "forslagstiller/foedselsnummer", f: "forslagstiller/partstype/kodeverdi = privatperson" },
-                { p: "Forslagstiller.Foedselsnummer.Kontrollsiffer", t: "Forslagsstillers fødselsnummer må ha gyldig kontrollsiffer.", r: "Feil", b: "forslagstiller/foedselsnummer", f: "forslagstiller/partstype/kodeverdi = privatperson" },
-                { p: "Forslagstiller.Foedselsnummer.Kryptert", t: "Fødselsnummeret til forslagsstiller må være kryptert.", r: "Feil", b: "forslagstiller/foedselsnummer", f: "forslagstiller/partstype/kodeverdi = privatperson" },
-                { p: "Forslagstiller.Foedselsnummer.Utfylt", t: "Fødselsnummer må angis når forslagsstiller er privatperson.", r: "Feil", b: "forslagstiller/foedselsnummer", f: "forslagstiller/partstype/kodeverdi = privatperson" },
-                { p: "Forslagstiller.Kontaktperson.Epost.Gyldig", t: "E-postadresse '{0}' for forslagsstillers kontaktperson er ikke gyldig. Gyldig e-post skrives som navn@domene.no", r: "Feil", b: "forslagstiller/kontaktperson/epost" },
-                { p: "Forslagstiller.Kontaktperson.Epost.Utfylt", t: "E-postadressen til forslagsstillers kontaktperson bør fylles ut.", r: "Advarsel", b: "forslagstiller/kontaktperson/epost" },
-                { p: "Forslagstiller.Kontaktperson.Navn.Utfylt", t: "Navnet til forslagsstillers kontaktperson bør fylles ut.", r: "Advarsel", b: "forslagstiller/kontaktperson/navn" },
-                { p: "Forslagstiller.Kontaktperson.Telefonnummer.Gyldig", t: "Telefonnummeret til forslagsstillers kontaktperson må kun inneholde tall og '+'.", r: "Feil", b: "forslagstiller/kontaktperson/telefonnummer" },
-                { p: "Forslagstiller.Kontaktperson.Telefonnummer.Utfylt", t: "Telefonnummeret til forslagsstillers kontaktperson bør fylles ut.", r: "Advarsel", b: "forslagstiller/kontaktperson/telefonnummer" },
-                { p: "Forslagstiller.Kontaktperson.Utfylt", t: "Kontaktperson for forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagstiller/kontaktperson" },
-                { p: "Forslagstiller.Mobilnummer.Gyldig", t: "Mobilnummeret til forslagsstiller må kun inneholde tall og '+'.", r: "Feil", b: "forslagstiller/mobilnummer" },
-                { p: "Forslagstiller.Mobilnummer.Utfylt", t: "Mobilnummeret til forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagstiller/mobilnummer" },
-                { p: "Forslagstiller.Navn.Utfylt", t: "Navnet til forslagsstiller må fylles ut.", r: "Feil", b: "forslagstiller/navn" },
-                { p: "Forslagstiller.Organisasjonsnummer.Gyldig", t: "Organisasjonsnummeret '{0}' for forslagsstiller er ikke gyldig.", r: "Feil", b: "forslagstiller/organisasjonsnummer", f: "forslagstiller/partstype/kodeverdi = ikke privatperson" },
-                { p: "Forslagstiller.Organisasjonsnummer.Kontrollsiffer", t: "Organisasjonsnummeret til forslagsstiller må ha gyldig kontrollsiffer.", r: "Feil", b: "forslagstiller/organisasjonsnummer", f: "forslagstiller/partstype/kodeverdi = ikke privatperson" },
-                { p: "Forslagstiller.Organisasjonsnummer.Utfylt", t: "Organisasjonsnummeret til forslagsstiller må fylles ut.", r: "Feil", b: "forslagstiller/organisasjonsnummer", f: "forslagstiller/partstype/kodeverdi = ikke privatperson" },
-                { p: "Forslagstiller.Partstype.Kodebeskrivelse.Gyldig", t: "Kodebeskrivelsen '{0}' stemmer ikke med den valgte kodeverdien for partstype. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/byggesoknad/partstype", r: "Advarsel", b: "forslagstiller/partstype/kodebeskrivelse" },
-                { p: "Forslagstiller.Partstype.Kodebeskrivelse.Utfylt", t: "Når partstype er valgt, må kodebeskrivelse fylles ut. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagstiller/partstype/kodebeskrivelse" },
-                { p: "Forslagstiller.Partstype.Kodeverdi.Gyldig", t: "Ugyldig kodeverdi '{0}' i henhold til kodeliste for 'partstype' for forslagsstiller. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagstiller/partstype/kodeverdi" },
-                { p: "Forslagstiller.Partstype.Kodeverdi.KodelisteFinnes", t: "Kodeverdien '{0}' ble ikke validert. Partstypen kan være riktig, men en teknisk feil gjør at vi ikke kan bekrefte det.", r: "Advarsel", b: "forslagstiller/partstype/kodeverdi" },
-                { p: "Forslagstiller.Partstype.Kodeverdi.Utfylt", t: "Kodeverdien for 'partstype' til forslagsstiller må fylles ut. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagstiller/partstype/kodeverdi" },
-                { p: "Forslagstiller.Partstype.Utfylt", t: "Du må oppgi partstypen for forslagsstiller. Du kan sjekke gyldige partstyper på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagstiller/partstype" },
-                { p: "Forslagstiller.Telefonnummer.Gyldig", t: "Telefonnummeret til forslagsstiller må kun inneholde tall og '+'.", r: "Feil", b: "forslagstiller/telefonnummer" },
-                { p: "Forslagstiller.Telefonnummer.Utfylt", t: "Telefonnummeret til forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagstiller/telefonnummer" },
-                { p: "Forslagstiller.Utfylt", t: "Informasjon om forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagstiller" },
+            { g: "Forslagsstiller", rules: [
+                { p: "Forslagsstiller.Utfylt", t: "Hvis høringen har en forslagsstiller bør du fylle ut informasjon om den.", r: "Advarsel", b: "forslagsstiller" },
+                { p: "Forslagsstiller.Partstype.Utfylt", t: "Du må oppgi partstypen for forslagsstiller. Du kan sjekke gyldige partstyper på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagsstiller/partstype" },
+                { p: "Forslagsstiller.Partstype.Kodeverdi.Utfylt", t: "Kodeverdien for 'partstype' til forslagsstiller må fylles ut. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagsstiller/partstype/kodeverdi" },
+                { p: "Forslagsstiller.Partstype.Kodeverdi.KodelisteFinnes", t: "Kodeverdien '{0}' ble ikke validert. Partstypen kan være riktig, men en teknisk feil gjør at vi ikke kan bekrefte det.", r: "Advarsel", b: "forslagsstiller/partstype/kodeverdi" },
+                { p: "Forslagsstiller.Partstype.Kodeverdi.Gyldig", t: "Ugyldig kodeverdi for partstypen til forslagsstiller. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagsstiller/partstype/kodeverdi" },
+                { p: "Forslagsstiller.Partstype.Kodebeskrivelse.Utfylt", t: "Når partstype er valgt, må kodebeskrivelse fylles ut. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "forslagsstiller/partstype/kodebeskrivelse" },
+                { p: "Forslagsstiller.Partstype.Kodebeskrivelse.Gyldig", t: "Kodebeskrivelsen '{0}' stemmer ikke med den valgte kodeverdien for partstype. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/byggesoknad/partstype", r: "Advarsel", b: "forslagsstiller/partstype/kodebeskrivelse" },
+                { p: "Forslagsstiller.Foedselsnummer.Utfylt", t: "Fødselsnummer må fylles ut når forslagsstiller er en privatperson.", r: "Feil", b: "forslagsstiller/foedselsnummer", f: "forslagsstiller/partstype/kodeverdi = privatperson" },
+                { p: "Forslagsstiller.Foedselsnummer.Kryptert", t: "Fødselsnummeret til forslagsstiller må være kryptert.", r: "Feil", b: "forslagsstiller/foedselsnummer", f: "forslagsstiller/partstype/kodeverdi = privatperson" },
+                { p: "Forslagsstiller.Foedselsnummer.Dekryptert", t: "Fødselsnummeret til forslagsstiller kan ikke dekrypteres.", r: "Feil", b: "forslagsstiller/foedselsnummer", f: "forslagsstiller/partstype/kodeverdi = privatperson" },
+                { p: "Forslagsstiller.Foedselsnummer.Gyldig", t: "Fødselsnummeret til forslagsstiller er ikke gyldig.", r: "Feil", b: "forslagsstiller/foedselsnummer", f: "forslagsstiller/partstype/kodeverdi = privatperson" },
+                { p: "Forslagsstiller.Foedselsnummer.Kontrollsiffer", t: "Fødselsnummeret til forslagsstiller har ikke gyldig kontrollsiffer.", r: "Feil", b: "forslagsstiller/foedselsnummer", f: "forslagsstiller/partstype/kodeverdi = privatperson" },
+                { p: "Forslagsstiller.Organisasjonsnummer.Utfylt", t: "Organisasjonsnummer må fylles ut når forslagsstiller er en organisasjon.", r: "Feil", b: "forslagsstiller/organisasjonsnummer", f: "forslagsstiller/partstype/kodeverdi = ikke privatperson" },
+                { p: "Forslagsstiller.Organisasjonsnummer.Gyldig", t: "Organisasjonsnummeret ('{0}') for forslagsstiller er ikke gyldig.", r: "Feil", b: "forslagsstiller/organisasjonsnummer", f: "forslagsstiller/partstype/kodeverdi = ikke privatperson" },
+                { p: "Forslagsstiller.Organisasjonsnummer.Kontrollsiffer", t: "Organisasjonsnummeret ('{0}') for forslagsstiller har ikke gyldig kontrollsiffer.", r: "Feil", b: "forslagsstiller/organisasjonsnummer", f: "forslagsstiller/partstype/kodeverdi = ikke privatperson" },
+                { p: "Forslagsstiller.Adresse.Utfylt", t: "Du bør fylle ut adressen til forslagsstiller.", r: "Advarsel", b: "forslagsstiller/adresse" },
+                { p: "Forslagsstiller.Adresse.Adresselinje1.Utfylt", t: "Adresselinje 1 bør fylles ut for forslagsstiller.", r: "Advarsel", b: "forslagsstiller/adresse/adresselinje1" },
+                { p: "Forslagsstiller.Adresse.Landkode.Gyldig", t: "Landkoden '{0}' for forslagsstillers adresse, er ikke gyldig.", r: "Advarsel", b: "forslagsstiller/adresse/landkode" },
+                { p: "Forslagsstiller.Adresse.Landkode.Norsk", t: "Landkoden til forslagsstillers adresse må være norsk.", r: "Advarsel", b: "forslagsstiller/adresse/landkode" },
+                { p: "Forslagsstiller.Adresse.Postnr.Utfylt", t: "Du bør fylle ut postnummeret til forslagsstillers adresse.", r: "Advarsel", b: "forslagsstiller/adresse/postnr" },
+                { p: "Forslagsstiller.Adresse.Postnr.KodelisteFinnes", t: "Postnummeret '{0}' til forslagsstiller ble ikke validert. Postnummeret kan være riktig, men en teknisk feil gjør at vi ikke kan bekrefte det.", r: "Advarsel", b: "forslagsstiller/adresse/postnr" },
+                { p: "Forslagsstiller.Adresse.Postnr.Gyldig", t: "Postnummeret '{0}' for forslagsstiller er ugyldig. Du kan sjekke riktig postnummer på http://adressesok.bring.no/", r: "Advarsel", b: "forslagsstiller/adresse/postnr" },
+                { p: "Forslagsstiller.Adresse.Postnr.Poststed.Gyldig", t: "Postnummeret '{0}' for forslagsstiller stemmer ikke overens med poststedet '{1}'. Postnummeret er fra '{2}'. Du kan sjekke riktig postnummer/poststed på http://adressesok.bring.no/", r: "Advarsel", b: "forslagsstiller/adresse/postnr", f: "forslagsstiller/adresse/poststed" },
+                { p: "Forslagsstiller.Navn.Utfylt", t: "Navnet til forslagsstiller må fylles ut.", r: "Feil", b: "forslagsstiller/navn" },
+                { p: "Forslagsstiller.Telefonnummer.Utfylt", t: "Telefonnummeret til forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagsstiller/telefonnummer" },
+                { p: "Forslagsstiller.Telefonnummer.Gyldig", t: "Telefonnummeret til forslagsstiller må kun inneholde tall og '+'.", r: "Feil", b: "forslagsstiller/telefonnummer" },
+                { p: "Forslagsstiller.Mobilnummer.Utfylt", t: "Mobilnummeret til forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagsstiller/mobilnummer" },
+                { p: "Forslagsstiller.Mobilnummer.Gyldig", t: "Mobilnummeret til forslagsstiller må kun inneholde tall og '+'.", r: "Feil", b: "forslagsstiller/mobilnummer" },
+                { p: "Forslagsstiller.Epost.Utfylt", t: "E-postadressen til forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagsstiller/epost" },
+                { p: "Forslagsstiller.Epost.Gyldig", t: "E-postadressen for forslagsstiller er ikke gyldig. Gyldig e-post skrives som navn@domene.no.", r: "Feil", b: "forslagsstiller/epost" },
+                { p: "Forslagsstiller.Kontaktperson.Utfylt", t: "Kontaktperson for forslagsstiller bør fylles ut.", r: "Advarsel", b: "forslagsstiller/kontaktperson" },
+                { p: "Forslagsstiller.Kontaktperson.Navn.Utfylt", t: "Navnet til kontaktpersonen for forslagsstilleren må fylles ut.", r: "Feil", b: "forslagsstiller/kontaktperson/navn" },
+                { p: "Forslagsstiller.Kontaktperson.Epost.Utfylt", t: "E-postadressen til forslagsstillerens kontaktperson må fylles ut.", r: "Feil", b: "forslagsstiller/kontaktperson/epost" },
+                { p: "Forslagsstiller.Kontaktperson.Epost.Gyldig", t: "E-postadresse '{0}' for forslagsstillerens kontaktperson er ikke gyldig. Gyldig e-post skrives som navn@domene.no", r: "Feil", b: "forslagsstiller/kontaktperson/epost" },
+                { p: "Forslagsstiller.Kontaktperson.Telefonnummer.Utfylt", t: "Telefonnummeret til forslagsstillerens kontaktperson må fylles ut.", r: "Feil", b: "forslagsstiller/kontaktperson/telefonnummer" },
+                { p: "Forslagsstiller.Kontaktperson.Telefonnummer.Gyldig", t: "Telefonnummeret til forslagsstillerens kontaktperson må kun inneholde tall og '+'.", r: "Feil", b: "forslagsstiller/kontaktperson/telefonnummer" },
             ]},
             { g: "FristForUttalelse", rules: [
                 { p: "FristForUttalelse.Gyldig", t: "Uttalelsesfristen må være minst seks uker frem i tid fra dagens dato.", r: "Feil", b: "fristForUttalelse" },
                 { p: "FristForUttalelse.Utfylt", t: "Fristen for uttalelse må fylles ut.", r: "Feil", b: "fristForUttalelse" },
             ]},
             { g: "EksisterendePlanerSomBeroeres", rules: [
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.BeskrivelseAvFoelger.Utfylt", t: "Beskrivelse av hvilken del av gjeldende arealplan som berøres bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/beskrivelseAvFoelger" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Kommunenummer.Gyldig", t: "Kommunenummeret '{0}' for gjeldende arealplan finnes ikke i kodelisten. Du kan sjekke riktig kommunenummer på https://register.geonorge.no/sosi-kodelister/kommunenummer", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/nasjonalArealplanId/kommunenummer" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Kommunenummer.KodelisteFinnes", t: "En teknisk feil gjør at vi ikke kan bekrefte om kommunenummeret '{0}' for gjeldende arealplan er riktig. Du kan sjekke riktig kommunenummer på https://register.geonorge.no/sosi-kodelister/kommunenummer", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/nasjonalArealplanId/kommunenummer" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Kommunenummer.Utfylt", t: "Kommunenummer for gjeldende arealplans nasjonale arealplan-ID bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/nasjonalArealplanId/kommunenummer" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Landkode.Utfylt", t: "Landkoden for gjeldende arealplans nasjonale arealplan-ID bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/nasjonalArealplanId/landkode" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.PlanId.Utfylt", t: "Plan-ID for gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/nasjonalArealplanId/planId" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Utfylt", t: "Nasjonal arealplan-ID for gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/nasjonalArealplanId" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Navn.Utfylt", t: "Navnet på gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/navn" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodebeskrivelse.Gyldig", t: "Kodebeskrivelsen '{0}' stemmer ikke med den valgte kodeverdien for plantype til gjeldende arealplan. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/plantype/kodebeskrivelse" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodebeskrivelse.Utfylt", t: "Når plantype er valgt for gjeldende arealplan, bør kodebeskrivelse fylles ut. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/plantype/kodebeskrivelse" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodeverdi.Gyldig", t: "'{0}' er en ugyldig kodeverdi for plantype til gjeldende arealplan. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/plantype/kodeverdi" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodeverdi.KodelisteFinnes", t: "Kodeverdien '{0}' for gjeldende arealplan ble ikke validert. En teknisk feil gjør at vi ikke kan validere informasjon for plantype. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/plantype/kodeverdi" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodeverdi.Utfylt", t: "Kodeverdien for 'plantype' til gjeldende arealplan bør fylles ut. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/plantype/kodeverdi" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Utfylt", t: "Plantypen til gjeldende arealplan bør fylles ut. Du kan sjekke gyldige plantyper på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}/plantype" },
-                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Utfylt", t: "Informasjon om gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/EksisterendePlanSomBeroeres{0}" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.BeskrivelseAvFoelger.Utfylt", t: "Beskrivelse av hvilken del av gjeldende arealplan som berøres bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/beskrivelseAvFoelger" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Kommunenummer.Gyldig", t: "Kommunenummeret '{0}' for gjeldende arealplan finnes ikke i kodelisten. Du kan sjekke riktig kommunenummer på https://register.geonorge.no/sosi-kodelister/kommunenummer", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/nasjonalArealplanId/kommunenummer" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Kommunenummer.KodelisteFinnes", t: "En teknisk feil gjør at vi ikke kan bekrefte om kommunenummeret '{0}' for gjeldende arealplan er riktig. Du kan sjekke riktig kommunenummer på https://register.geonorge.no/sosi-kodelister/kommunenummer", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/nasjonalArealplanId/kommunenummer" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Kommunenummer.Utfylt", t: "Kommunenummer for gjeldende arealplans nasjonale arealplan-ID bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/nasjonalArealplanId/kommunenummer" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Landkode.Utfylt", t: "Landkoden for gjeldende arealplans nasjonale arealplan-ID bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/nasjonalArealplanId/landkode" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.PlanId.Utfylt", t: "Plan-ID for gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/nasjonalArealplanId/planId" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.NasjonalArealplanId.Utfylt", t: "Nasjonal arealplan-ID for gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/nasjonalArealplanId" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Navn.Utfylt", t: "Navnet på gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/navn" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodebeskrivelse.Gyldig", t: "Kodebeskrivelsen '{0}' stemmer ikke med den valgte kodeverdien for plantype til gjeldende arealplan. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/plantype/kodebeskrivelse" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodebeskrivelse.Utfylt", t: "Når plantype er valgt for gjeldende arealplan, bør kodebeskrivelse fylles ut. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/plantype/kodebeskrivelse" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodeverdi.Gyldig", t: "'{0}' er en ugyldig kodeverdi for plantype til gjeldende arealplan. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/plantype/kodeverdi" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodeverdi.KodelisteFinnes", t: "Kodeverdien '{0}' for gjeldende arealplan ble ikke validert. En teknisk feil gjør at vi ikke kan validere informasjon for plantype. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/plantype/kodeverdi" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Kodeverdi.Utfylt", t: "Kodeverdien for 'plantype' til gjeldende arealplan bør fylles ut. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/plantype/kodeverdi" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Plantype.Utfylt", t: "Plantypen til gjeldende arealplan bør fylles ut. Du kan sjekke gyldige plantyper på https://register.geonorge.no/plansak/plantype-plansak", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}/plantype" },
+                { p: "EksisterendePlanerSomBeroeres.EksisterendePlanSomBeroeres.Utfylt", t: "Informasjon om gjeldende arealplan bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres/eksisterendePlanSomBeroeres{0}" },
                 { p: "EksisterendePlanerSomBeroeres.Utfylt", t: "Informasjon om gjeldende arealplaner bør fylles ut.", r: "Advarsel", b: "eksisterendePlanerSomBeroeres" },
             ]},
             { g: "HjemmesidePlanforslag", rules: [
@@ -3103,6 +3103,7 @@
                 { p: "Plankonsulent.Partstype.Kodebeskrivelse.Gyldig", t: "Kodebeskrivelsen '{0}' stemmer ikke med den valgte kodeverdien for partstype. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/byggesoknad/partstype", r: "Advarsel", b: "plankonsulent/partstype/kodebeskrivelse" },
                 { p: "Plankonsulent.Partstype.Kodebeskrivelse.Utfylt", t: "Når partstype er valgt, må kodebeskrivelse fylles ut. Du kan sjekke riktig kodebeskrivelse på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "plankonsulent/partstype/kodebeskrivelse" },
                 { p: "Plankonsulent.Partstype.Kodeverdi.Gyldig", t: "Ugyldig kodeverdi '{0}' i henhold til kodeliste for 'partstype' for plankonsulent. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "plankonsulent/partstype/kodeverdi" },
+                { p: "Plankonsulent.Partstype.Kodeverdi.Tillatt", t: "Partstypen for plankonsulent må være et foretak eller en organisasjon.", r: "Feil", b: "plankonsulent/partstype/kodeverdi" },
                 { p: "Plankonsulent.Partstype.Kodeverdi.KodelisteFinnes", t: "Kodeverdien '{0}' ble ikke validert. Partstypen kan være riktig, men en teknisk feil gjør at vi ikke kan bekrefte det.", r: "Advarsel", b: "plankonsulent/partstype/kodeverdi" },
                 { p: "Plankonsulent.Partstype.Kodeverdi.Utfylt", t: "Kodeverdien for 'partstype' til plankonsulent må fylles ut. Du kan sjekke riktig kodeverdi på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "plankonsulent/partstype/kodeverdi" },
                 { p: "Plankonsulent.Partstype.Utfylt", t: "Du må oppgi partstypen for plankonsulent. Du kan sjekke gyldige partstyper på https://register.geonorge.no/byggesoknad/partstype", r: "Feil", b: "plankonsulent/partstype" },
