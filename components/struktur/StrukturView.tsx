@@ -2,8 +2,24 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
-import { parseXsd } from '@/lib/xsd';
+import { parseXsd, serializeXsd } from '@/lib/xsd';
 import type { Struktur, StrukturObjekt, StrukturFelt } from '@/lib/struktur';
+
+// Standard XSD-kardinaliteter. Ikke-standard verdier (f.eks. fra import) legges
+// til dynamisk i nedtrekkslista så de aldri forsvinner.
+const KARDINALITETER: { verdi: string; etikett: string }[] = [
+  { verdi: '0..1', etikett: '0..1 (valgfri)' },
+  { verdi: '1..1', etikett: '1..1 (påkrevd)' },
+  { verdi: '0..n', etikett: '0..n (valgfri, flere)' },
+  { verdi: '1..n', etikett: '1..n (påkrevd, flere)' },
+];
+
+// Vanlige innebygde XSD-typer som forslag i type-feltet (åpent felt – fri tekst
+// er fortsatt mulig, og objektene i modellen legges til dynamisk).
+const TYPE_FORSLAG = [
+  'string', 'boolean', 'integer', 'decimal', 'long', 'int',
+  'dateTime', 'date', 'time', 'anyURI', 'base64Binary',
+];
 
 export default function StrukturView({
   datamodellId,
@@ -81,8 +97,39 @@ export default function StrukturView({
     e.target.value = '';
   }
 
+  function onExport() {
+    if (objekter.length === 0) {
+      alert('Ingen objekter å eksportere ennå.');
+      return;
+    }
+    const valgt = prompt('Filnavn for XSD-en:', 'datamodell.xsd');
+    if (valgt == null) return; // avbrutt
+    let filnavn = valgt.trim() || 'datamodell.xsd';
+    if (!/\.xsd$/i.test(filnavn)) filnavn += '.xsd';
+    const xsd = serializeXsd(objekter);
+    const blob = new Blob([xsd], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filnavn;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // Forslag til type-feltet: innebygde XSD-typer + alle objektnavn i modellen.
+  const typeForslag = Array.from(
+    new Set([...TYPE_FORSLAG, ...objekter.map((o) => o.navn).filter(Boolean)]),
+  );
+
   return (
     <div className="validering-wrap">
+      <datalist id="struktur-typer">
+        {typeForslag.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
       <div className="page-head">
         <div>
           <h1>Datamodell</h1>
@@ -98,6 +145,15 @@ export default function StrukturView({
             📦 Importer XSD
             <input type="file" accept=".xsd,.xml,application/xml,text/xml" onChange={onImport} />
           </label>
+          <button
+            type="button"
+            className="regel-importbtn"
+            onClick={onExport}
+            disabled={objekter.length === 0}
+            title="Last ned struktur som XSD"
+          >
+            ⬇ Last ned XSD
+          </button>
           <span className={`save-status ${status}`} style={{ alignSelf: 'center' }}>
             {status === 'saving' ? '☁ Lagrer …' : status === 'saved' ? '☁ Lagret (delt)' : ''}
           </span>
@@ -139,8 +195,9 @@ export default function StrukturView({
               <table className="regeltable">
                 <thead>
                   <tr>
-                    <th style={{ width: '26%' }}>Felt</th>
-                    <th style={{ width: '22%' }}>Type</th>
+                    <th style={{ width: '24%' }}>Felt</th>
+                    <th style={{ width: '20%' }}>Type</th>
+                    <th style={{ width: '12%' }}>Kardinalitet</th>
                     <th>Beskrivelse</th>
                     <th style={{ width: '34px' }}></th>
                   </tr>
@@ -161,12 +218,33 @@ export default function StrukturView({
                       <td>
                         <input
                           className="struktur-celle"
+                          list="struktur-typer"
                           value={f.type}
                           onChange={(e) => patchFelt(oi, fi, { type: e.target.value })}
                           onFocus={(e) => (focusVal.current = e.target.value)}
                           onBlur={(e) => logBlur(`Type for «${f.navn}» i «${obj.navn}»`, e.target.value)}
                           placeholder="type"
                         />
+                      </td>
+                      <td>
+                        <select
+                          className="struktur-celle"
+                          value={f.kardinalitet ?? ''}
+                          onChange={(e) => patchFelt(oi, fi, { kardinalitet: e.target.value })}
+                          onFocus={(e) => (focusVal.current = e.target.value)}
+                          onBlur={(e) => logBlur(`Kardinalitet for «${f.navn}» i «${obj.navn}»`, e.target.value)}
+                        >
+                          <option value="">—</option>
+                          {KARDINALITETER.map((k) => (
+                            <option key={k.verdi} value={k.verdi}>
+                              {k.etikett}
+                            </option>
+                          ))}
+                          {f.kardinalitet &&
+                            !KARDINALITETER.some((k) => k.verdi === f.kardinalitet) && (
+                              <option value={f.kardinalitet}>{f.kardinalitet}</option>
+                            )}
+                        </select>
                       </td>
                       <td>
                         <input
