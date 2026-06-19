@@ -17,7 +17,6 @@ export default function DiskusjonPanel({
   canDecide,
   currentEpost,
   currentNavn,
-  stickyTop,
   onBack,
   onSend,
   onDecide,
@@ -32,7 +31,6 @@ export default function DiskusjonPanel({
   canDecide: boolean;
   currentEpost: string;
   currentNavn: string;
-  stickyTop: number;
   onBack: () => void;
   onSend: (p: { type: MeldingType; body: string; felt?: string; endring?: string }) => Promise<void> | void;
   onDecide: (id: string, status: ForslagStatus) => void;
@@ -137,20 +135,7 @@ export default function DiskusjonPanel({
   }
 
   return (
-    <aside
-      style={{
-        position: 'sticky',
-        top: stickyTop,
-        alignSelf: 'start',
-        height: `calc(100vh - ${stickyTop + 24}px)`,
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--bg-1)',
-        border: '1px solid var(--neutral-border)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
+    <aside className="ws-panel">
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--neutral-border)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: '0.72rem', color: 'var(--fg-2)' }}>{ctxIsField ? 'Felt' : 'Diskusjon'}</div>

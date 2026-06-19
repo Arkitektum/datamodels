@@ -228,7 +228,7 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
           )}
         </div>
 
-        <div style={harForhandsvisning ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'stretch' } : { display: 'block' }}>
+        <div className={harForhandsvisning ? 'ws-doc-split' : undefined}>
           {harForhandsvisning && (
             <div style={{ border: '1px solid var(--neutral-border-strong)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--bg-2)', minHeight: 480, display: 'flex' }}>
               {erPdf && <iframe src={previewUrl} title="Forhåndsvisning" style={{ width: '100%', height: '100%', minHeight: 480, border: 'none', display: 'block' }} />}

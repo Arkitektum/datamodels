@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/auth';
 import './legacy.css';
 import './globals.css';
 import './designsystem.css';
+import './workspace.css';
 
 export const metadata: Metadata = {
   title: 'Datamodell-portal',
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="no">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

@@ -12,7 +12,6 @@ export default function Sidebar({
   onSelect,
   openCount,
   onOpenCreate,
-  stickyTop,
 }: {
   models: ModellView[];
   activeId: string;
@@ -22,7 +21,6 @@ export default function Sidebar({
   onSelect: (id: string) => void;
   openCount: (id: string) => number;
   onOpenCreate: () => void;
-  stickyTop: number;
 }) {
   const q = search.trim().toLowerCase();
   const matches = (m: ModellView) =>
@@ -38,20 +36,7 @@ export default function Sidebar({
   })).filter((g) => g.items.length);
 
   return (
-    <aside
-      className="pv-scroll"
-      style={{
-        position: 'sticky',
-        top: stickyTop,
-        alignSelf: 'start',
-        maxHeight: `calc(100vh - ${stickyTop + 24}px)`,
-        overflowY: 'auto',
-        background: 'var(--bg-1)',
-        border: '1px solid var(--neutral-border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: 16,
-      }}
-    >
+    <aside className="ws-rail pv-scroll">
       <div style={{ marginBottom: 14 }}>
         <div className="eyebrow" style={{ marginBottom: 8 }}>
           Datamodeller

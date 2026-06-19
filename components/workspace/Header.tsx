@@ -30,16 +30,7 @@ export default function Header() {
         borderBottom: '1px solid var(--neutral-border)',
       }}
     >
-      <div
-        style={{
-          maxWidth: '112rem',
-          margin: '0 auto',
-          padding: '12px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 28,
-        }}
-      >
+      <div className="ws-headbar">
         <a
           href="/"
           aria-label="Arkitektum · Dibk Fellestjenester plan og bygg"
@@ -69,7 +60,7 @@ export default function Header() {
           </span>
         </a>
 
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <nav className="ws-hide-sm" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <span
             aria-current="page"
             style={{
@@ -86,8 +77,8 @@ export default function Header() {
         </nav>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: '0.82rem', color: 'var(--fg-2)' }}>Innlogget som</span>
-          <span style={{ fontSize: '0.85rem', color: 'var(--fg-1)', fontWeight: 500 }}>{visNavn}</span>
+          <span className="ws-hide-sm" style={{ fontSize: '0.82rem', color: 'var(--fg-2)' }}>Innlogget som</span>
+          <span className="ws-hide-sm" style={{ fontSize: '0.85rem', color: 'var(--fg-1)', fontWeight: 500 }}>{visNavn}</span>
           <span className={isDibk ? 'pill pill--success' : 'pill pill--info'}>
             {isDibk ? 'DiBK' : 'Utvikler'}
           </span>
@@ -108,7 +99,7 @@ export default function Header() {
           >
             {initialer(visNavn)}
           </span>
-          <button className="btn btn--tertiary btn--sm" onClick={() => setShowPw(true)}>
+          <button className="btn btn--tertiary btn--sm ws-hide-sm" onClick={() => setShowPw(true)}>
             Bytt passord
           </button>
           <button className="btn btn--tertiary btn--sm" onClick={() => signOut()}>

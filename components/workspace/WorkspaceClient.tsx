@@ -36,8 +36,6 @@ import EksempelTab from './tabs/EksempelTab';
 import DiskusjonTab from './tabs/DiskusjonTab';
 import { ModellView, STATUS_META, SUBTABS } from './types';
 
-const STICKY_TOP = 64;
-
 export default function WorkspaceClient() {
   const { rolle, navn, epost, isDibk } = useRolle();
   const [custom, setCustom] = useState<CustomModell[]>([]);
@@ -255,18 +253,7 @@ export default function WorkspaceClient() {
     <>
       <Header />
       <div style={{ minHeight: 'calc(100vh - 60px)', background: 'var(--bg-2)' }}>
-        <div
-          style={{
-            display: 'grid',
-            gap: 24,
-            width: '100%',
-            margin: '0 auto',
-            padding: 24,
-            alignItems: 'start',
-            maxWidth: '112rem',
-            gridTemplateColumns: '284px minmax(0,1fr) 388px',
-          }}
-        >
+        <div className="ws-layout">
           <Sidebar
             models={models}
             activeId={activeId}
@@ -276,10 +263,9 @@ export default function WorkspaceClient() {
             onSelect={selectModel}
             openCount={(id) => aapneForslagCount(diskusjon, id)}
             onOpenCreate={() => setShowCreate(true)}
-            stickyTop={STICKY_TOP}
           />
 
-          <main style={{ minWidth: 0 }}>
+          <main className="ws-main">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <span
                 style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_META[model.status].dot, flexShrink: 0 }}
@@ -373,7 +359,6 @@ export default function WorkspaceClient() {
             canDecide={isDibk}
             currentEpost={epost}
             currentNavn={navn}
-            stickyTop={STICKY_TOP}
             onBack={() => setThreadCtx(null)}
             onSend={send}
             onDecide={decide}
