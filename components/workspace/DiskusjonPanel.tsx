@@ -300,9 +300,12 @@ export default function DiskusjonPanel({
           <button className="btn btn--primary btn--md" onClick={send} style={{ flex: 1 }}>
             Send
           </button>
-          <button className="btn btn--tertiary btn--sm" onClick={onClear}>
-            Tøm tråd
-          </button>
+          {/* Tømming av hele tråden (alles meldinger) er forbeholdt DiBK. */}
+          {canDecide && (
+            <button className="btn btn--tertiary btn--sm" onClick={onClear} title="Sletter hele tråden">
+              Tøm tråd
+            </button>
+          )}
         </div>
       </div>
     </aside>

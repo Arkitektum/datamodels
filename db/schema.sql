@@ -166,10 +166,13 @@ create policy "diskusjon_les" on public.diskusjon
 drop policy if exists "diskusjon_ny" on public.diskusjon;
 create policy "diskusjon_ny" on public.diskusjon
     for insert to authenticated with check (true);
--- Slette meldinger/tråder: alle innloggede (tøm tråd + egne meldinger).
+-- Slette meldinger: kun EGNE (matcher e-post) eller DiBK (kan rydde/tømme tråd).
 drop policy if exists "diskusjon_slett" on public.diskusjon;
 create policy "diskusjon_slett" on public.diskusjon
-    for delete to authenticated using (true);
+    for delete to authenticated using (
+        lower(coalesce(epost, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        or public.er_dibk()
+    );
 -- Endre EGNE meldinger (matcher e-post).
 drop policy if exists "diskusjon_egen_endre" on public.diskusjon;
 create policy "diskusjon_egen_endre" on public.diskusjon
