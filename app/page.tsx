@@ -1,10 +1,10 @@
 import AuthGate from '@/components/AuthGate';
-import HomeClient from '@/components/HomeClient';
+import WorkspaceClient from '@/components/workspace/WorkspaceClient';
 
 export default function Home() {
   return (
     <AuthGate>
-      <HomeClient />
+      <WorkspaceClient />
     </AuthGate>
   );
 }

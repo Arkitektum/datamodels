@@ -5,6 +5,12 @@
 // en full XSD-implementasjon (løser ikke imports/typearv på tvers av filer).
 import type { Struktur, StrukturObjekt, StrukturFelt } from './struktur';
 
+/** Opplastet XSD lagret ordrett (vises uendret i XSD-fanen). */
+export interface XsdKilde {
+  src: string;
+  file: string;
+}
+
 const XS = 'http://www.w3.org/2001/XMLSchema';
 
 function localName(tag: string): string {

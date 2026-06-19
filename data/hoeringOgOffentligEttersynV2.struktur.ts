@@ -1,464 +1,221 @@
-// AUTO-EKSTRAHERT fra de innebygde doktabellene. Standard datamodell-struktur
-// for HoeringOgOffentligEttersyn V2 (redigerbar i appen, lagres i Supabase).
+// AUTO-GENERERT fra HoeringOgOffentligEttersyn V2-modellen (gruppert,
+// med note/ref/req for den grupperte Datamodell-fanen). Redigerbar i appen,
+// lagres delt i Supabase under type "struktur".
 import type { Struktur } from "@/lib/struktur";
 
 export const STRUKTUR_DEFAULT: Struktur = [
   {
-    "navn": "Konvolutten – HoeringOgOffentligEttersynType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "hoeringstype",
-        "type": "KodeType",
-        "beskrivelse": "Én av: HOFFE (Høring og offentlig ettersyn) / BEGR (Begrenset høring) / FORE (Forelegging). Se kodeliste i sidebar."
-      },
-      {
-        "navn": "planprosessregel",
-        "type": "KodeType",
-        "beskrivelse": "NY-KP / NY-RP / ENDR-KP-MINDRE / ENDR-KP / ENDR-RP / ENDR-F-RP / OPPH-KP / OPPH-RP / OPPH-F-RP — se kodeliste i sidebar"
-      },
-      {
-        "navn": "mottakerListe",
-        "type": "BeroertpartOgInteressentOgMyndighetListe",
-        "beskrivelse": "Liste av berørte parter, interessenter og myndigheter som varsles"
-      },
-      {
-        "navn": "eiendommerSomInngaarIPlanomraadet",
-        "type": "EiendomListe",
-        "beskrivelse": "Eiendommer innenfor planområdet"
-      },
-      {
-        "navn": "eksisterendePlanerSomBeroeres",
-        "type": "EksisterendePlanSomBeroeresListe",
-        "beskrivelse": "Eksisterende arealplaner som berøres"
-      },
-      {
-        "navn": "kommune",
-        "type": "AktoerType",
-        "beskrivelse": "Kommunen som sender varselet"
-      },
-      {
-        "navn": "forslagsstiller",
-        "type": "AktoerType",
-        "beskrivelse": "Forslagsstiller for planforslaget"
-      },
-      {
-        "navn": "plankonsulent",
-        "type": "AktoerType",
-        "beskrivelse": "Konsulent som har utarbeidet planforslaget"
-      },
-      {
-        "navn": "metadata",
-        "type": "MetadataType",
-        "beskrivelse": "Sluttbrukersystem, prosjekt-info, foretrukket språk"
-      },
-      {
-        "navn": "planforslag",
-        "type": "Arealplan",
-        "beskrivelse": "Identifikasjon av selve planforslaget"
-      },
-      {
-        "navn": "medvirkningIHoeringsperioden",
-        "type": "string",
-        "beskrivelse": "Beskrivelse av medvirkningsformer"
-      },
-      {
-        "navn": "planhensikt",
-        "type": "string",
-        "beskrivelse": "Formålet med planforslaget"
-      },
-      {
-        "navn": "tilgjengelighetEksemplar",
-        "type": "string",
-        "beskrivelse": "Fritekst — hvor planen er tilgjengelig (lovkrav)"
-      },
-      {
-        "navn": "fristForUttalelse",
-        "type": "dateTime",
-        "beskrivelse": "Frist for å levere uttalelse"
-      },
-      {
-        "navn": "hjemmesidePlanforslag",
-        "type": "string",
-        "beskrivelse": "URL til planprogram/planforslag-side"
-      },
-      {
-        "navn": "kommunensSaksnummer",
-        "type": "SaksnummerType",
-        "beskrivelse": "Kommunens interne saksnummer (saksår + sekvens)"
-      },
-      {
-        "navn": "beskrivelseVedtakOmHoeringOgOffentligEttersyn",
-        "type": "string",
-        "beskrivelse": "Politisk vedtak om utlegging til høring/ettersyn"
-      }
-    ]
+    navn: "HoeringOgOffentligEttersynType",
+    beskrivelse: "",
+    note: "konvolutt / rotelement",
+    group: "Konvolutt",
+    open: true,
+    felt: [
+      { navn: "hoeringstype", type: "KodeType", kardinalitet: "0..1", beskrivelse: "Type høring: ordinær (HOFFE), begrenset (BEGR) eller forelegging (FORE).", ref: "KodeType" },
+      { navn: "planprosessregel", type: "KodeType", kardinalitet: "0..1", beskrivelse: "Planprosessen saken følger: ny reguleringsplan, endring, oppheving m.fl.", ref: "KodeType" },
+      { navn: "mottakerliste", type: "Beroertpart [liste]", kardinalitet: "1..*", beskrivelse: "Berørte parter, interessenter og myndigheter som skal varsles. Minst én.", ref: "BeroertpartOgInteressentOgMyndighetType", req: true, list: true },
+      { navn: "eiendommerSomInngaarIPlanomraadet", type: "Eiendom [liste]", kardinalitet: "0..*", beskrivelse: "Eiendommer som ligger innenfor planområdet.", ref: "EiendomType", list: true },
+      { navn: "eksisterendePlanerSomBeroeres", type: "EksisterendePlan [liste]", kardinalitet: "0..*", beskrivelse: "Gjeldende planer som berøres av planforslaget.", ref: "EksisterendePlanSomBeroeresType", list: true },
+      { navn: "kommune", type: "AktoerType", kardinalitet: "0..1", beskrivelse: "Kommunen som er planmyndighet.", ref: "AktoerType" },
+      { navn: "forslagsstiller", type: "AktoerType", kardinalitet: "0..1", beskrivelse: "Den som fremmer planforslaget.", ref: "AktoerType" },
+      { navn: "plankonsulent", type: "AktoerType", kardinalitet: "0..1", beskrivelse: "Fagkyndig konsulent som utarbeider planen.", ref: "AktoerType" },
+      { navn: "metadata", type: "MetadataType", kardinalitet: "0..1", beskrivelse: "Teknisk metadata om innsendingen.", ref: "MetadataType" },
+      { navn: "planforslag", type: "Arealplan", kardinalitet: "1..1", beskrivelse: "Selve planforslaget — navn, plan-ID og plantype.", ref: "Arealplan", req: true },
+      { navn: "beskrivelseKartutsnitt", type: "string", kardinalitet: "0..1", beskrivelse: "Tekstlig beskrivelse av kartutsnittet." },
+      { navn: "medvirkningIHoeringsperioden", type: "string", kardinalitet: "0..1", beskrivelse: "Hvordan medvirkning skjer i høringsperioden." },
+      { navn: "planhensikt", type: "string", kardinalitet: "0..1", beskrivelse: "Formålet med planforslaget." },
+      { navn: "tilgjengelighetEksemplar", type: "string", kardinalitet: "0..1", beskrivelse: "Hvor og hvordan planforslaget er tilgjengelig." },
+      { navn: "fristForUttalelse", type: "dateTime", kardinalitet: "0..1", beskrivelse: "Frist for å levere uttalelse." },
+      { navn: "hjemmesidePlanforslag", type: "string", kardinalitet: "0..1", beskrivelse: "Lenke til planforslaget på kommunens nettsider." },
+      { navn: "kommunensSaksnummer", type: "SaksnummerType", kardinalitet: "0..1", beskrivelse: "Kommunens saksnummer (saksår + sekvens).", ref: "SaksnummerType" },
+      { navn: "beskrivelseVedtakOmHoeringOgOffentligEttersyn", type: "string", kardinalitet: "0..1", beskrivelse: "Beskrivelse av vedtaket om å legge planen ut til høring." },
+    ],
   },
   {
-    "navn": "Arealplan – planforslag (selve planen)",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "plannavn",
-        "type": "string",
-        "beskrivelse": "Plannavn (f.eks. «Områdeplan for His Allé»)"
-      },
-      {
-        "navn": "nasjonalArealplanId",
-        "type": "NasjonalArealplanIdType",
-        "beskrivelse": "Nasjonal ID — kommunenr + landkode + planId"
-      },
-      {
-        "navn": "plantype",
-        "type": "KodeType",
-        "beskrivelse": "F.eks. «Detaljregulering» (kodeverdi 35)"
-      }
-    ]
+    navn: "BeroertpartOgInteressentOgMyndighetType",
+    beskrivelse: "",
+    note: "mottaker / berørt part / myndighet",
+    group: "Parter og aktører",
+    open: true,
+    felt: [
+      { navn: "partstype", type: "KodeType", kardinalitet: "0..1", beskrivelse: "Privatperson eller organisasjon.", ref: "KodeType" },
+      { navn: "foedselsnummer", type: "string", kardinalitet: "0..1", beskrivelse: "11 siffer. Kun for privatpersoner." },
+      { navn: "organisasjonsnummer", type: "string", kardinalitet: "0..1", beskrivelse: "9 siffer fra Enhetsregisteret." },
+      { navn: "rolle", type: "KodeType", kardinalitet: "0..1", beskrivelse: "Hjemmelshaver, nabo/gjenboer, statsforvalter m.fl.", ref: "KodeType" },
+      { navn: "navn", type: "string", kardinalitet: "0..1", beskrivelse: "Navn på part." },
+      { navn: "telefon", type: "string", kardinalitet: "0..1", beskrivelse: "Telefonnummer." },
+      { navn: "epost", type: "string", kardinalitet: "0..1", beskrivelse: "E-postadresse." },
+      { navn: "adresse", type: "EnkelAdresseType", kardinalitet: "0..1", beskrivelse: "Postadresse til parten.", ref: "EnkelAdresseType" },
+      { navn: "systemReferanse", type: "string", kardinalitet: "0..1", beskrivelse: "Sluttbrukersystemets interne ID for parten." },
+      { navn: "gjelderEiendommer", type: "GjelderEiendom [liste]", kardinalitet: "0..*", beskrivelse: "Eiendommer parten knyttes til.", ref: "GjelderEiendomType", list: true },
+    ],
   },
   {
-    "navn": "EksisterendePlanSomBeroeresType – eksisterende plan(er) som berøres",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "navn",
-        "type": "string",
-        "beskrivelse": "Plannavn"
-      },
-      {
-        "navn": "plantype",
-        "type": "KodeType",
-        "beskrivelse": "Plantype-kode"
-      },
-      {
-        "navn": "nasjonalArealplanId",
-        "type": "NasjonalArealplanIdType",
-        "beskrivelse": "Nasjonal ID"
-      },
-      {
-        "navn": "beskrivelseAvFoelger",
-        "type": "string",
-        "beskrivelse": "Delen av denne planen som berøres av ny plan"
-      }
-    ]
+    navn: "AktoerType",
+    beskrivelse: "",
+    note: "kommune / forslagsstiller / plankonsulent",
+    group: "Parter og aktører",
+    felt: [
+      { navn: "partstype", type: "KodeType", kardinalitet: "0..1", beskrivelse: "Privatperson eller organisasjon.", ref: "KodeType" },
+      { navn: "foedselsnummer", type: "string", kardinalitet: "0..1", beskrivelse: "11 siffer (privatperson)." },
+      { navn: "organisasjonsnummer", type: "string", kardinalitet: "0..1", beskrivelse: "9 siffer (organisasjon)." },
+      { navn: "navn", type: "string", kardinalitet: "0..1", beskrivelse: "Navn på aktør." },
+      { navn: "adresse", type: "EnkelAdresseType", kardinalitet: "0..1", beskrivelse: "Postadresse.", ref: "EnkelAdresseType" },
+      { navn: "telefonnummer", type: "string", kardinalitet: "0..1", beskrivelse: "Telefonnummer." },
+      { navn: "mobilnummer", type: "string", kardinalitet: "0..1", beskrivelse: "Mobilnummer." },
+      { navn: "epost", type: "string", kardinalitet: "0..1", beskrivelse: "E-postadresse." },
+      { navn: "kontaktperson", type: "KontaktpersonType", kardinalitet: "0..1", beskrivelse: "Kontaktperson hos aktøren.", ref: "KontaktpersonType" },
+    ],
   },
   {
-    "navn": "BeroertpartOgInteressentOgMyndighetType – berørt part / interessent / myndighet",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "partstype",
-        "type": "KodeType",
-        "beskrivelse": "Privatperson eller Organisasjon — fra Geonorge-kodeliste"
-      },
-      {
-        "navn": "foedselsnummer",
-        "type": "string",
-        "beskrivelse": "Kun for privatperson — krypteres ved distribusjon"
-      },
-      {
-        "navn": "organisasjonsnummer",
-        "type": "string",
-        "beskrivelse": "Kun for organisasjon (9 siffer fra Brønnøysund)"
-      },
-      {
-        "navn": "rolle",
-        "type": "KodeType",
-        "beskrivelse": "Én rolle parten har i planprosessen. Mulige verdier: forslagsstiller , fagkyndig_plankonsulent , hjemmelshaver , nabo_gjenboer , leietager , interessent , berort_kommune , statsforvalter , fylkeskommune , sametinget , sektormyndighet , andre_interessenter . Se kodeliste i sidebar."
-      },
-      {
-        "navn": "navn",
-        "type": "string",
-        "beskrivelse": "Fullt navn på person eller organisasjon"
-      },
-      {
-        "navn": "telefon",
-        "type": "string",
-        "beskrivelse": "Telefonnummer til parten"
-      },
-      {
-        "navn": "epost",
-        "type": "string",
-        "beskrivelse": "E-postadresse til parten"
-      },
-      {
-        "navn": "adresse",
-        "type": "EnkelAdresseType",
-        "beskrivelse": "Postadresse for varsling"
-      },
-      {
-        "navn": "systemReferanse",
-        "type": "string",
-        "beskrivelse": "Sluttbrukersystemets interne ID — brukes for å koble tilbake ved svar"
-      },
-      {
-        "navn": "gjelderEiendommer",
-        "type": "GjelderEiendomListe",
-        "beskrivelse": "Eiendommer parten er knyttet til (typisk hjemmelshaver/nabo)"
-      }
-    ]
+    navn: "KontaktpersonType",
+    beskrivelse: "",
+    note: "kontaktperson for aktør",
+    group: "Parter og aktører",
+    felt: [
+      { navn: "navn", type: "string", kardinalitet: "0..1", beskrivelse: "Navn på kontaktperson." },
+      { navn: "tittel", type: "string", kardinalitet: "0..1", beskrivelse: "Tittel/rolle." },
+      { navn: "telefonnummer", type: "string", kardinalitet: "0..1", beskrivelse: "Telefonnummer." },
+      { navn: "mobilnummer", type: "string", kardinalitet: "0..1", beskrivelse: "Mobilnummer." },
+      { navn: "epost", type: "string", kardinalitet: "0..1", beskrivelse: "E-postadresse." },
+    ],
   },
   {
-    "navn": "AktoerType – kommune / forslagsstiller",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "partstype",
-        "type": "KodeType",
-        "beskrivelse": "Privatperson eller Organisasjon"
-      },
-      {
-        "navn": "foedselsnummer",
-        "type": "string",
-        "beskrivelse": "Kun for privatperson"
-      },
-      {
-        "navn": "organisasjonsnummer",
-        "type": "string",
-        "beskrivelse": "Kun for organisasjon (9 siffer)"
-      },
-      {
-        "navn": "navn",
-        "type": "string",
-        "beskrivelse": "Navn på person eller organisasjon"
-      },
-      {
-        "navn": "adresse",
-        "type": "EnkelAdresseType",
-        "beskrivelse": "Postadresse"
-      },
-      {
-        "navn": "telefonnummer",
-        "type": "string",
-        "beskrivelse": "Sentralbordnummer eller fast telefon"
-      },
-      {
-        "navn": "mobilnummer",
-        "type": "string",
-        "beskrivelse": "Mobilnummer"
-      },
-      {
-        "navn": "epost",
-        "type": "string",
-        "beskrivelse": "Felles e-postadresse"
-      },
-      {
-        "navn": "kontaktperson",
-        "type": "KontaktpersonType",
-        "beskrivelse": "Navngitt person hos organisasjonen — fungerer som kontaktledd"
-      }
-    ]
+    navn: "Arealplan",
+    beskrivelse: "",
+    note: "planforslaget (PlanType)",
+    group: "Plan",
+    open: true,
+    felt: [
+      { navn: "plannavn", type: "string", kardinalitet: "0..1", beskrivelse: "F.eks. «Områdeplan for His Allé»." },
+      { navn: "nasjonalArealplanId", type: "NasjonalArealplanIdType", kardinalitet: "0..1", beskrivelse: "Kommunenr + landkode + planId.", ref: "NasjonalArealplanIdType" },
+      { navn: "plantype", type: "KodeType", kardinalitet: "0..1", beskrivelse: "F.eks. detaljregulering (35).", ref: "KodeType" },
+    ],
   },
   {
-    "navn": "KontaktpersonType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "navn",
-        "type": "string",
-        "beskrivelse": "Fullt navn på kontaktperson"
-      },
-      {
-        "navn": "telefonnummer",
-        "type": "string",
-        "beskrivelse": "Direkte telefonnummer til personen"
-      },
-      {
-        "navn": "mobilnummer",
-        "type": "string",
-        "beskrivelse": "Mobilnummer til personen"
-      },
-      {
-        "navn": "epost",
-        "type": "string",
-        "beskrivelse": "Direkte e-postadresse til personen"
-      }
-    ]
+    navn: "EksisterendePlanSomBeroeresType",
+    beskrivelse: "",
+    note: "gjeldende plan som berøres",
+    group: "Plan",
+    felt: [
+      { navn: "navn", type: "string", kardinalitet: "0..1", beskrivelse: "Navn på eksisterende plan." },
+      { navn: "plantype", type: "KodeType", kardinalitet: "0..1", beskrivelse: "Plantype for eksisterende plan.", ref: "KodeType" },
+      { navn: "nasjonalArealplanId", type: "NasjonalArealplanIdType", kardinalitet: "0..1", beskrivelse: "Nasjonal arealplan-ID.", ref: "NasjonalArealplanIdType" },
+      { navn: "beskrivelseAvFoelger", type: "string", kardinalitet: "0..1", beskrivelse: "Hvilke følger planforslaget får for planen." },
+    ],
   },
   {
-    "navn": "EiendomType / GjelderEiendomType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "eiendomsidentifikasjon",
-        "type": "MatrikkelnummerType",
-        "beskrivelse": "Matrikkelidentifikasjon — kommunenr + gnr/bnr/fnr/snr"
-      },
-      {
-        "navn": "adresse",
-        "type": "EiendommensAdresseType",
-        "beskrivelse": "Eiendommens fysiske adresse (gatenavn, husnr, bokstav, postnr/poststed)"
-      },
-      {
-        "navn": "bygningsnummer",
-        "type": "string",
-        "beskrivelse": "Matrikkelens bygningsnummer — identifiserer en spesifikk bygning på eiendommen"
-      },
-      {
-        "navn": "bolignummer",
-        "type": "string",
-        "beskrivelse": "Bolignummer (H0101 osv.) — identifiserer en spesifikk leilighet/bolig"
-      },
-      {
-        "navn": "kommunenavn",
-        "type": "string",
-        "beskrivelse": "Navn på kommunen eiendommen ligger i"
-      }
-    ]
+    navn: "EiendomType",
+    beskrivelse: "",
+    note: "eiendom i planområdet",
+    group: "Eiendom",
+    felt: [
+      { navn: "eiendomsidentifikasjon", type: "MatrikkelnummerType", kardinalitet: "0..1", beskrivelse: "Matrikkelnummer (knr/gnr/bnr).", ref: "MatrikkelnummerType" },
+      { navn: "adresse", type: "EiendommensAdresseType", kardinalitet: "0..1", beskrivelse: "Eiendommens adresse.", ref: "EiendommensAdresseType" },
+      { navn: "bygningsnummer", type: "string", kardinalitet: "0..1", beskrivelse: "Bygningsnummer." },
+      { navn: "bolignummer", type: "string", kardinalitet: "0..1", beskrivelse: "Bolignummer." },
+      { navn: "kommunenavn", type: "string", kardinalitet: "0..1", beskrivelse: "Navn på kommunen." },
+    ],
   },
   {
-    "navn": "MatrikkelnummerType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "kommunenummer",
-        "type": "string",
-        "beskrivelse": "4-sifret kommunenummer (f.eks. «0301» for Oslo)"
-      },
-      {
-        "navn": "gaardsnummer",
-        "type": "integer",
-        "beskrivelse": "Gårdsnummer (gnr) — første del av matrikkeladresse"
-      },
-      {
-        "navn": "bruksnummer",
-        "type": "integer",
-        "beskrivelse": "Bruksnummer (bnr) — andre del av matrikkeladresse"
-      },
-      {
-        "navn": "festenummer",
-        "type": "integer",
-        "beskrivelse": "Festenummer (fnr) — for festetomter (0 hvis ikke aktuelt)"
-      },
-      {
-        "navn": "seksjonsnummer",
-        "type": "integer",
-        "beskrivelse": "Seksjonsnummer (snr) — for seksjonerte eiendommer"
-      }
-    ]
+    navn: "GjelderEiendomType",
+    beskrivelse: "",
+    note: "eiendom knyttet til part",
+    group: "Eiendom",
+    felt: [
+      { navn: "bolignummer", type: "string", kardinalitet: "0..1", beskrivelse: "Bolignummer." },
+      { navn: "bygningsnummer", type: "string", kardinalitet: "0..1", beskrivelse: "Bygningsnummer." },
+      { navn: "eiendomsidentifikasjon", type: "MatrikkelnummerType", kardinalitet: "0..1", beskrivelse: "Matrikkelnummer.", ref: "MatrikkelnummerType" },
+      { navn: "adresse", type: "EiendommensAdresseType", kardinalitet: "0..1", beskrivelse: "Adresse.", ref: "EiendommensAdresseType" },
+      { navn: "kommunenavn", type: "string", kardinalitet: "0..1", beskrivelse: "Kommunenavn." },
+    ],
   },
   {
-    "navn": "NasjonalArealplanIdType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "kommunenummer",
-        "type": "string",
-        "beskrivelse": "Kommunen som forvalter planen (4 siffer)"
-      },
-      {
-        "navn": "landkode",
-        "type": "string",
-        "beskrivelse": "Landkode (alltid «NO» for norske planer)"
-      },
-      {
-        "navn": "planId",
-        "type": "string",
-        "beskrivelse": "Unik plan-ID innen kommunen. NB: andre XSD-er bruker «planidentifikasjon»"
-      }
-    ]
+    navn: "MatrikkelnummerType",
+    beskrivelse: "",
+    note: "matrikkel: knr/gnr/bnr",
+    group: "Eiendom",
+    felt: [
+      { navn: "kommunenummer", type: "string", kardinalitet: "0..1", beskrivelse: "Kommunenummer (4 siffer)." },
+      { navn: "gaardsnummer", type: "integer", kardinalitet: "0..1", beskrivelse: "Gårdsnummer." },
+      { navn: "bruksnummer", type: "integer", kardinalitet: "0..1", beskrivelse: "Bruksnummer." },
+      { navn: "festenummer", type: "integer", kardinalitet: "0..1", beskrivelse: "Festenummer." },
+      { navn: "seksjonsnummer", type: "integer", kardinalitet: "0..1", beskrivelse: "Seksjonsnummer." },
+    ],
   },
   {
-    "navn": "MetadataType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "fraSluttbrukersystem",
-        "type": "string",
-        "beskrivelse": "Navn på sluttbrukersystem som sender (f.eks. «Vorpah»)"
-      },
-      {
-        "navn": "ftbId",
-        "type": "string",
-        "beskrivelse": "Unik referanse-ID generert av Fellestjenester Bygg/Plan"
-      },
-      {
-        "navn": "prosjektnavn",
-        "type": "string",
-        "beskrivelse": "Internt prosjektnavn i sluttbrukersystem"
-      },
-      {
-        "navn": "prosjektnr",
-        "type": "string",
-        "beskrivelse": "Internt prosjektnummer i sluttbrukersystem"
-      },
-      {
-        "navn": "foretrukketSpraak",
-        "type": "KodeType",
-        "beskrivelse": "Bokmål (nb), nynorsk (nn) eller engelsk (en)"
-      }
-    ]
+    navn: "SaksnummerType",
+    beskrivelse: "",
+    note: "saksår + sekvens",
+    group: "Felles typer",
+    felt: [
+      { navn: "saksaar", type: "integer", kardinalitet: "0..1", beskrivelse: "Saksår." },
+      { navn: "sakssekvensnummer", type: "integer", kardinalitet: "0..1", beskrivelse: "Sekvensnummer innen året." },
+    ],
   },
   {
-    "navn": "SaksnummerType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "saksaar",
-        "type": "integer",
-        "beskrivelse": "Året saken ble opprettet i kommunen (f.eks. 2026 )"
-      },
-      {
-        "navn": "sakssekvensnummer",
-        "type": "integer",
-        "beskrivelse": "Løpenummer innen saksåret — unik kombinasjon med saksaar"
-      }
-    ]
+    navn: "NasjonalArealplanIdType",
+    beskrivelse: "",
+    note: "nasjonal plan-ID",
+    group: "Felles typer",
+    felt: [
+      { navn: "kommunenummer", type: "string", kardinalitet: "0..1", beskrivelse: "Kommunenummer." },
+      { navn: "landkode", type: "string", kardinalitet: "0..1", beskrivelse: "Landkode (NO)." },
+      { navn: "planId", type: "string", kardinalitet: "0..1", beskrivelse: "Planidentifikasjon." },
+    ],
   },
   {
-    "navn": "EnkelAdresseType / EiendommensAdresseType",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "adresselinje1–3",
-        "type": "string",
-        "beskrivelse": "Tre frie linjer for adresse (gatenavn, c/o, bygningsnavn, osv.)"
-      },
-      {
-        "navn": "postnr",
-        "type": "string",
-        "beskrivelse": "4-sifret postnummer"
-      },
-      {
-        "navn": "poststed",
-        "type": "string",
-        "beskrivelse": "Poststedsnavn (f.eks. «Oslo»)"
-      },
-      {
-        "navn": "landkode",
-        "type": "string",
-        "beskrivelse": "ISO 3166 landkode (f.eks. «NO» for Norge)"
-      },
-      {
-        "navn": "gatenavn",
-        "type": "string",
-        "beskrivelse": "Kun EiendommensAdresseType — strukturert gatenavn"
-      },
-      {
-        "navn": "husnr",
-        "type": "string",
-        "beskrivelse": "Kun EiendommensAdresseType — husnummer"
-      },
-      {
-        "navn": "bokstav",
-        "type": "string",
-        "beskrivelse": "Kun EiendommensAdresseType — adressebokstav (A/B/C)"
-      }
-    ]
+    navn: "EnkelAdresseType",
+    beskrivelse: "",
+    note: "enkel postadresse",
+    group: "Felles typer",
+    felt: [
+      { navn: "adresselinje1", type: "string", kardinalitet: "0..1", beskrivelse: "Adresselinje 1." },
+      { navn: "adresselinje2", type: "string", kardinalitet: "0..1", beskrivelse: "Adresselinje 2." },
+      { navn: "adresselinje3", type: "string", kardinalitet: "0..1", beskrivelse: "Adresselinje 3." },
+      { navn: "postnr", type: "string", kardinalitet: "0..1", beskrivelse: "Postnummer." },
+      { navn: "poststed", type: "string", kardinalitet: "0..1", beskrivelse: "Poststed." },
+      { navn: "landkode", type: "string", kardinalitet: "0..1", beskrivelse: "Landkode." },
+    ],
   },
   {
-    "navn": "KodeType / KodeListe",
-    "beskrivelse": "",
-    "felt": [
-      {
-        "navn": "kodeverdi",
-        "type": "string",
-        "beskrivelse": "Teknisk kode fra kodelisten (f.eks. «35» for detaljregulering)"
-      },
-      {
-        "navn": "kodebeskrivelse",
-        "type": "string",
-        "beskrivelse": "Menneskelig lesbar tekst (f.eks. «Detaljregulering»)"
-      }
-    ]
-  }
+    navn: "EiendommensAdresseType",
+    beskrivelse: "",
+    note: "eiendomsadresse m/ gate",
+    group: "Felles typer",
+    felt: [
+      { navn: "adresselinje1", type: "string", kardinalitet: "0..1", beskrivelse: "Adresselinje 1." },
+      { navn: "adresselinje2", type: "string", kardinalitet: "0..1", beskrivelse: "Adresselinje 2." },
+      { navn: "adresselinje3", type: "string", kardinalitet: "0..1", beskrivelse: "Adresselinje 3." },
+      { navn: "postnr", type: "string", kardinalitet: "0..1", beskrivelse: "Postnummer." },
+      { navn: "poststed", type: "string", kardinalitet: "0..1", beskrivelse: "Poststed." },
+      { navn: "landkode", type: "string", kardinalitet: "0..1", beskrivelse: "Landkode." },
+      { navn: "gatenavn", type: "string", kardinalitet: "0..1", beskrivelse: "Gatenavn." },
+      { navn: "husnr", type: "string", kardinalitet: "0..1", beskrivelse: "Husnummer." },
+      { navn: "bokstav", type: "string", kardinalitet: "0..1", beskrivelse: "Husbokstav." },
+    ],
+  },
+  {
+    navn: "MetadataType",
+    beskrivelse: "",
+    note: "teknisk metadata",
+    group: "Felles typer",
+    felt: [
+      { navn: "fraSluttbrukersystem", type: "string", kardinalitet: "0..1", beskrivelse: "Avsendersystem." },
+      { navn: "ftbId", type: "string", kardinalitet: "0..1", beskrivelse: "Fellestjenester-ID." },
+      { navn: "prosjektnavn", type: "string", kardinalitet: "0..1", beskrivelse: "Prosjektnavn." },
+      { navn: "prosjektnr", type: "string", kardinalitet: "0..1", beskrivelse: "Prosjektnummer." },
+      { navn: "foretrukketSpraak", type: "KodeType", kardinalitet: "0..1", beskrivelse: "Foretrukket språk.", ref: "KodeType" },
+    ],
+  },
+  {
+    navn: "KodeType",
+    beskrivelse: "",
+    note: "kode + beskrivelse — brukes overalt",
+    group: "Felles typer",
+    felt: [
+      { navn: "kodeverdi", type: "string", kardinalitet: "0..1", beskrivelse: "Maskinlesbar kodeverdi." },
+      { navn: "kodebeskrivelse", type: "string", kardinalitet: "0..1", beskrivelse: "Lesbar beskrivelse av koden." },
+    ],
+  },
 ];
