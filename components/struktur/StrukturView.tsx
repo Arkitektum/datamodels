@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
+import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
+import ConflictBanner from '@/components/shared/ConflictBanner';
 import { parseXsd, serializeXsd } from '@/lib/xsd';
 import type { Struktur, StrukturObjekt, StrukturFelt } from '@/lib/struktur';
 
@@ -28,17 +30,16 @@ export default function StrukturView({
   datamodellId: string;
   defaultStruktur?: Struktur;
 }) {
-  const { value, setValue, status } = useDokumentData<Struktur>(datamodellId, 'struktur', defaultStruktur);
+  const { value, setValue, status, revision, stale, reload } = useDokumentData<Struktur>(
+    datamodellId,
+    'struktur',
+    defaultStruktur,
+  );
   const [objekter, setObjekter] = useState<Struktur>(defaultStruktur);
-  const adopted = useRef(false);
 
-  useEffect(() => {
-    if (adopted.current) return;
-    if (status === 'idle') {
-      setObjekter(Array.isArray(value) && value.length ? value : defaultStruktur);
-      adopted.current = true;
-    }
-  }, [status, value, defaultStruktur]);
+  useAdoptOnRevision(status, revision, () => {
+    setObjekter(Array.isArray(value) && value.length ? value : defaultStruktur);
+  });
 
   function update(next: Struktur, detalj?: string) {
     setObjekter(next);
@@ -159,6 +160,8 @@ export default function StrukturView({
           </span>
         </div>
       </div>
+
+      <ConflictBanner visible={status === 'conflict' || stale} onReload={reload} style={{ marginTop: 12 }} />
 
       {objekter.length === 0 ? (
         <div className="card" style={{ marginTop: 16 }}>

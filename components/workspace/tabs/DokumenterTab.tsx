@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
+import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
+import ConflictBanner from '@/components/shared/ConflictBanner';
 import {
   type Dokument,
   type DokKind,
@@ -65,18 +67,20 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
   const titleRef = useRef<HTMLInputElement>(null);
 
   // Mappenavn lagres delt, så tomme mapper består på tvers av brukere/økter.
-  const { value: lagredeMapper, setValue: setMapper, status: mapperStatus } = useDokumentData<string[]>(model.id, 'dok_mapper', []);
+  const {
+    value: lagredeMapper,
+    setValue: setMapper,
+    status: mapperStatus,
+    revision: mapperRevision,
+    stale: mapperStale,
+    reload: mapperReload,
+  } = useDokumentData<string[]>(model.id, 'dok_mapper', []);
   const [mapper, setMapperState] = useState<string[]>([]);
-  const adoptedMapper = useRef(false);
-  useEffect(() => {
-    if (adoptedMapper.current) return;
-    if (mapperStatus === 'idle') {
-      const server = Array.isArray(lagredeMapper) ? lagredeMapper : [];
-      // flett inn evt. mappe brukeren rakk å lage før lasting ble ferdig
-      setMapperState((prev) => Array.from(new Set([...server, ...prev])));
-      adoptedMapper.current = true;
-    }
-  }, [mapperStatus, lagredeMapper]);
+  // Fletter inn evt. mapper brukeren rakk å lage lokalt, så ingen går tapt.
+  useAdoptOnRevision(mapperStatus, mapperRevision, () => {
+    const server = Array.isArray(lagredeMapper) ? lagredeMapper : [];
+    setMapperState((prev) => Array.from(new Set([...server, ...prev])));
+  });
 
   const open = openId ? docs.find((d) => d.id === openId) ?? null : null;
   const visDok = visId ? docs.find((d) => d.id === visId) ?? null : null;
@@ -372,6 +376,12 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
           {mapperStatus === 'saving' ? 'Lagrer mapper …' : ''}
         </span>
       </div>
+
+      <ConflictBanner
+        visible={mapperStatus === 'conflict' || mapperStale}
+        onReload={mapperReload}
+        style={{ marginBottom: 14 }}
+      />
 
       <label
         onDragOver={(e) => { e.preventDefault(); if (!dragOver) setDragOver(true); }}

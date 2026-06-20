@@ -1,23 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
+import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
+import ConflictBanner from '@/components/shared/ConflictBanner';
 import { type Brev, type BlokkType, type BrevmalDok, uid } from '@/lib/brevmalDok';
 
 export default function BrevmalBuilder({ datamodellId }: { datamodellId: string }) {
-  const { value, setValue, status } = useDokumentData<BrevmalDok>(datamodellId, 'brevmaler', {
-    brev: [],
-  });
+  const { value, setValue, status, revision, stale, reload } = useDokumentData<BrevmalDok>(
+    datamodellId,
+    'brevmaler',
+    { brev: [] },
+  );
   const [brev, setBrev] = useState<Brev[]>([]);
-  const adopted = useRef(false);
 
-  useEffect(() => {
-    if (adopted.current) return;
-    if (status === 'idle') {
-      setBrev(Array.isArray(value?.brev) ? value.brev : []);
-      adopted.current = true;
-    }
-  }, [status, value]);
+  useAdoptOnRevision(status, revision, () => {
+    setBrev(Array.isArray(value?.brev) ? value.brev : []);
+  });
 
   function update(next: Brev[], detalj?: string) {
     setBrev(next);
@@ -93,6 +92,8 @@ export default function BrevmalBuilder({ datamodellId }: { datamodellId: string 
           </span>
         </div>
       </div>
+
+      <ConflictBanner visible={status === 'conflict' || stale} onReload={reload} style={{ marginTop: 12 }} />
 
       {brev.length === 0 ? (
         <div className="card" style={{ marginTop: 16 }}>

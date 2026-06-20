@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
+import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
+import ConflictBanner from '@/components/shared/ConflictBanner';
 import type { Kodeliste, KodelisteRad } from '@/data/hoeringOgOffentligEttersynV2.kodelister';
 import { ModellView } from './types';
 
@@ -28,21 +30,20 @@ function Chevron({ open }: { open: boolean }) {
 type EditPos = { li: number; ri: number | 'new' } | null;
 
 export default function SidebarKodelister({ model }: { model: ModellView }) {
-  const { value, setValue, status } = useDokumentData<Kodeliste[]>(model.id, 'kodelister', model.kodelisterDefault);
+  const { value, setValue, status, revision, stale, reload } = useDokumentData<Kodeliste[]>(
+    model.id,
+    'kodelister',
+    model.kodelisterDefault,
+  );
   const [lister, setLister] = useState<Kodeliste[]>(model.kodelisterDefault);
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const [edit, setEdit] = useState<EditPos>(null);
   const [draftKode, setDraftKode] = useState('');
   const [draftBesk, setDraftBesk] = useState('');
-  const adopted = useRef(false);
 
-  useEffect(() => {
-    if (adopted.current) return;
-    if (status === 'idle') {
-      setLister(Array.isArray(value) && value.length ? value : model.kodelisterDefault);
-      adopted.current = true;
-    }
-  }, [status, value, model.kodelisterDefault]);
+  useAdoptOnRevision(status, revision, () => {
+    setLister(Array.isArray(value) && value.length ? value : model.kodelisterDefault);
+  });
 
   function lagre(next: Kodeliste[], detalj: string) {
     setLister(next);
@@ -169,6 +170,11 @@ export default function SidebarKodelister({ model }: { model: ModellView }) {
       <span className={`save-status ${status}`} style={{ fontSize: '0.68rem', color: 'var(--fg-3)' }}>
         {status === 'saving' ? 'Lagrer …' : status === 'saved' ? 'Lagret (delt)' : ''}
       </span>
+      <ConflictBanner
+        visible={status === 'conflict' || stale}
+        onReload={reload}
+        style={{ marginTop: 6, fontSize: '0.72rem' }}
+      />
     </div>
   );
 }

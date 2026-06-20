@@ -2,12 +2,21 @@
 // `datamodell`. Innebygde modeller bor i lib/datamodeller.ts og er ikke her.
 import { getSupabase } from './supabase';
 import type { ModellStatus } from './datamodeller';
+import { parseXsd } from '@/lib/xsd';
 
 export interface CustomModell {
   id: string;
   navn: string;
   beskrivelse?: string | null;
   status: ModellStatus;
+}
+
+// Genererer en unik id for en ny modellrad: UUID når tilgjengelig (sikker
+// kontekst), ellers en tids- + tilfeldighetsbasert fallback som er unik
+// uavhengig av modellnavnet.
+function genererModellId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'm-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
 
 export async function listCustomModels(): Promise<CustomModell[]> {
@@ -36,10 +45,7 @@ export async function createCustomModel(
 ): Promise<CustomModell | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
-  const id =
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : 'm-' + Math.abs(navn.length * 2654435761).toString(36);
+  const id = genererModellId();
   const { data, error } = await supabase
     .from('datamodell')
     .insert({ id, navn, beskrivelse: beskrivelse || null, status })
@@ -49,6 +55,74 @@ export async function createCustomModel(
     console.warn('[customModels] create', error.message);
     return null;
   }
+  return {
+    id: data.id,
+    navn: data.navn,
+    beskrivelse: data.beskrivelse,
+    status: (data.status as ModellStatus) ?? status,
+  };
+}
+
+/**
+ * Oppretter en egendefinert modell OG seeder strukturen fra en opplastet XSD,
+ * slik at modellen blir fullverdig fra start (i stedet for tom). Strukturen
+ * lagres under dokument_data type='struktur' og den opprinnelige XSD-kilden
+ * under type='xsdkilde' (samme rader som StrukturView/XsdTab leser).
+ *
+ * Valg: vi LAR parseXsd kaste videre (fanger ikke feilen her), slik at
+ * kalleren kan vise en presis feilmelding fra parseren (f.eks. «Ugyldig
+ * XML/XSD …» eller «Fant ingen complexType …»). Parsing skjer derfor før
+ * modellraden opprettes – ugyldig XSD gir ingen tom modell på avveie.
+ */
+export async function createCustomModelFromXsd(
+  navn: string,
+  beskrivelse: string | undefined,
+  status: ModellStatus,
+  xsdText: string,
+  fileName: string,
+): Promise<CustomModell | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  // Parse først – kaster ved ugyldig XSD (bobler opp til kalleren).
+  const parsed = parseXsd(xsdText);
+
+  // Opprett modellraden (samme måte som createCustomModel).
+  const id = genererModellId();
+  const { data, error } = await supabase
+    .from('datamodell')
+    .insert({ id, navn, beskrivelse: beskrivelse || null, status })
+    .select('id,navn,beskrivelse,status')
+    .single();
+  if (error) {
+    console.warn('[customModels] createFromXsd', error.message);
+    return null; // modell-insert feilet → ikke skriv dokument_data
+  }
+
+  // Seed struktur + XSD-kilde. sist_detalj på struktur-raden gjør at appen
+  // logger opprettelsen.
+  const { error: dErr } = await supabase.from('dokument_data').upsert(
+    [
+      {
+        datamodell_id: id,
+        type: 'struktur',
+        innhold: parsed as unknown,
+        sist_detalj: `Opprettet fra XSD (${parsed.length} objekter)`,
+      },
+      {
+        datamodell_id: id,
+        type: 'xsdkilde',
+        innhold: { src: xsdText, file: fileName } as unknown,
+      },
+    ],
+    { onConflict: 'datamodell_id,type' },
+  );
+  if (dErr) {
+    // Modellen finnes nå; struktur kunne ikke seedes. Logg, men returner
+    // likevel modellen (den er opprettet og kan redigeres videre).
+    console.warn('[customModels] createFromXsd seed', dErr.message);
+  }
+
   return {
     id: data.id,
     navn: data.navn,

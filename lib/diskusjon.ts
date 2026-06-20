@@ -18,10 +18,14 @@ export interface Melding {
   felt: string | null;
   endring: string | null;
   status: ForslagStatus | null;
+  avgjort_av: string | null; // e-post til DiBK-bruker som avgjorde forslaget
+  avgjort_tid: string | null; // tidspunkt forslaget ble godkjent/avvist
   opprettet: string;
 }
 
-export type NyMelding = Omit<Melding, 'id' | 'opprettet'>;
+// Nye meldinger settes aldri som «avgjort» ved opprettelse — avgjort_av/_tid
+// fylles først når DiBK godkjenner/avviser et forslag (se setForslagStatus).
+export type NyMelding = Omit<Melding, 'id' | 'opprettet' | 'avgjort_av' | 'avgjort_tid'>;
 
 /** Henter ALLE meldinger på tvers av modeller (brukes for sidemeny-badges
  *  og det aktive modellpanelet — datamengden er liten). */
@@ -80,12 +84,25 @@ export async function slettMelding(id: string): Promise<boolean> {
 export async function setForslagStatus(id: string, status: ForslagStatus): Promise<boolean> {
   const supabase = getSupabase();
   if (!supabase) return false;
-  const { error } = await supabase.from('diskusjon').update({ status }).eq('id', id);
+  // Hent innlogget bruker (DiBK) for audit-sporet «hvem/når».
+  const { data: { user } } = await supabase.auth.getUser();
+  const patch =
+    status === 'open'
+      ? { status, avgjort_av: null, avgjort_tid: null }
+      : { status, avgjort_av: user?.email ?? null, avgjort_tid: new Date().toISOString() };
+  // .select() så vi kan skille «oppdaterte raden» fra «RLS avviste / fant ingen
+  // rad» (begge gir error=null, men sistnevnte returnerer ingen rader). Uten
+  // dette ville en avvist avgjørelse blitt rapportert som vellykket (fail-open).
+  const { data, error } = await supabase
+    .from('diskusjon')
+    .update(patch)
+    .eq('id', id)
+    .select('id');
   if (error) {
     console.warn('[diskusjon] setStatus', error.message);
     return false;
   }
-  return true;
+  return (data?.length ?? 0) > 0;
 }
 
 /** Tømmer én tråd (modell + kontekst). */

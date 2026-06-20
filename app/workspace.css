@@ -20,6 +20,17 @@
   min-width: 0;
 }
 
+/* Fullbredt hovedområde (Innboks, Admin, søkeresultater) — diskusjonspanelet
+   rendres ikke da, så main spenner over de gjenværende kolonnene. */
+.ws-main--wide {
+  grid-column: 2 / -1;
+}
+@media (max-width: 760px) {
+  .ws-main--wide {
+    grid-column: 1 / -1;
+  }
+}
+
 .ws-rail,
 .ws-panel {
   position: sticky;

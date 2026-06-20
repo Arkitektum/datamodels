@@ -1,7 +1,9 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
+import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
+import ConflictBanner from '@/components/shared/ConflictBanner';
 import EditableCell from './EditableCell';
 import {
   REGEL_GRUPPER_DEFAULT,
@@ -53,19 +55,13 @@ export default function ValideringsreglerView({
   const [resetKey, setResetKey] = useState(0);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState('');
-  const adopted = useRef(false);
 
-  // Adopter delt/lastet data én gang når innlasting er ferdig.
-  useEffect(() => {
-    if (adopted.current) return;
-    if (rules.status === 'idle') {
-      const next = rules.value && rules.value.length ? rules.value : base;
-      grupperRef.current = next;
-      setGrupper(next);
-      adopted.current = true;
-      setResetKey((k) => k + 1);
-    }
-  }, [rules.status, rules.value]);
+  useAdoptOnRevision(rules.status, rules.revision, () => {
+    const next = rules.value && rules.value.length ? rules.value : base;
+    grupperRef.current = next;
+    setGrupper(next);
+    setResetKey((k) => k + 1);
+  });
 
   const statusMap = status.value || {};
 
@@ -235,6 +231,17 @@ export default function ValideringsreglerView({
           {rules.status === 'saving' ? '☁ Lagrer …' : rules.status === 'saved' ? '☁ Lagret (delt)' : ''}
         </span>
       </div>
+
+      <ConflictBanner
+        visible={
+          rules.status === 'conflict' || rules.stale || status.status === 'conflict' || status.stale
+        }
+        onReload={() => {
+          rules.reload();
+          status.reload();
+        }}
+        style={{ marginBottom: 12 }}
+      />
 
       <div className="regeltable-scroll">
         <table className="regeltable">

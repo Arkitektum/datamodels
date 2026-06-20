@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
+import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
+import ConflictBanner from '@/components/shared/ConflictBanner';
 import type { VedleggType } from '@/data/hoeringOgOffentligEttersynV2.kodelister';
 import { ModellView } from './types';
 import SidebarKodelister from './SidebarKodelister';
@@ -61,22 +63,19 @@ function Tag({ children }: { children: React.ReactNode }) {
 }
 
 export default function SidebarReferanse({ model }: { model: ModellView }) {
-  const { value, setValue, status } = useDokumentData<VedleggType[]>(model.id, 'vedlegg', model.vedleggDefault);
+  const { value, setValue, status, revision, stale, reload } = useDokumentData<VedleggType[]>(
+    model.id,
+    'vedlegg',
+    model.vedleggDefault,
+  );
   const [vedlegg, setVedlegg] = useState<VedleggType[]>(model.vedleggDefault);
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [draftNavn, setDraftNavn] = useState('');
   const [draftFil, setDraftFil] = useState('');
-  const adopted = useRef(false);
 
-  useEffect(() => {
-    if (adopted.current) return;
-    if (status === 'idle') {
-      setVedlegg(Array.isArray(value) && value.length ? value : model.vedleggDefault);
-      adopted.current = true;
-    }
-  }, [status, value, model.vedleggDefault]);
-
-  // Bytt aktiv modell → nullstill adopsjon (komponenten remountes via key i Sidebar)
+  useAdoptOnRevision(status, revision, () => {
+    setVedlegg(Array.isArray(value) && value.length ? value : model.vedleggDefault);
+  });
 
   function lagre(next: VedleggType[], detalj: string) {
     setVedlegg(next);
@@ -166,6 +165,11 @@ export default function SidebarReferanse({ model }: { model: ModellView }) {
           <span className={`save-status ${status}`} style={{ fontSize: '0.68rem', marginTop: 4, color: 'var(--fg-3)' }}>
             {status === 'saving' ? 'Lagrer …' : status === 'saved' ? 'Lagret (delt)' : ''}
           </span>
+          <ConflictBanner
+            visible={status === 'conflict' || stale}
+            onReload={reload}
+            style={{ marginTop: 6, fontSize: '0.72rem' }}
+          />
         </div>
       </Seksjon>
 

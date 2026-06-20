@@ -190,6 +190,25 @@ h2 { font-size: 1.3rem; margin: 1.5rem 0 0.75rem; color: #243042; letter-spacing
 .save-status.saving { color: var(--accent); }
 .save-status.saved { color: #2c8c4a; }
 .save-status.error { color: var(--required); }
+.save-status.conflict { color: var(--required); }
+
+/* ---- Samtidighet: konflikt / utdatert serververdi ---- */
+.dd-conflict {
+  display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--warning-tinted, #fff4e0);
+  border: 1px solid var(--brand-orange, #e08600);
+  color: var(--fg-1, #333);
+  border-radius: 8px; padding: 6px 12px;
+  font-size: 0.82rem; line-height: 1.3;
+}
+.dd-conflict button {
+  appearance: none; cursor: pointer;
+  border: 1px solid var(--brand-orange, #e08600);
+  background: var(--brand-orange, #e08600); color: #fff;
+  border-radius: 6px; padding: 3px 10px;
+  font: inherit; font-size: 0.78rem; font-weight: 600;
+}
+.dd-conflict button:hover { filter: brightness(0.95); }
 
 /* ============ Tabs ============ */
 .tabs {

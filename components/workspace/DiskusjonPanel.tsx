@@ -216,6 +216,15 @@ export default function DiskusjonPanel({
                       <div style={{ marginTop: 8 }}>
                         <span className={sp.cls}>{sp.label}</span>
                       </div>
+                      {(m.status === 'approved' || m.status === 'rejected') && (m.avgjort_av || m.avgjort_tid) && (
+                        <div style={{ marginTop: 4, fontSize: '0.7rem', color: 'var(--fg-2)' }}>
+                          {m.status === 'approved' ? 'Godkjent' : 'Avvist'}
+                          {m.avgjort_av ? ` av ${m.avgjort_av}` : ''}
+                          {m.avgjort_tid
+                            ? ` · ${new Date(m.avgjort_tid).toLocaleString('no-NO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                            : ''}
+                        </div>
+                      )}
                       {kanAvgjore && (
                         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                           <button className="btn btn--primary btn--sm" onClick={() => onDecide(m.id, 'approved')}>

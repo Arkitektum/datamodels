@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(awk '/error/{print}')",
+      "Bash(grep -oE 'react-hooks/[a-z-]+|next/[a-z-]+|@?[a-z@-]*\\\\/[a-z-]+$')",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

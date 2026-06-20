@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
-import { useRolle } from '@/lib/roller';
+import { useRolle, ROLLE_LABELS } from '@/lib/roller';
 import ChangePassword from '@/components/ChangePassword';
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -14,11 +14,34 @@ function initialer(navn: string): string {
   return (deler[0][0] + deler[deler.length - 1][0]).toUpperCase();
 }
 
-export default function Header() {
+export type HeaderView = 'modell' | 'innboks' | 'admin';
+
+export default function Header({
+  view = 'modell',
+  onView,
+  innboksCount = 0,
+}: {
+  view?: HeaderView;
+  onView?: (v: HeaderView) => void;
+  innboksCount?: number;
+} = {}) {
   const { signOut } = useAuth();
-  const { rolle, navn, epost, isDibk } = useRolle();
+  const { rolle, navn, epost, isDibk, isAdmin } = useRolle();
   const [showPw, setShowPw] = useState(false);
   const visNavn = navn || epost;
+  const rolleLabel = ROLLE_LABELS[rolle] ?? 'Utvikler';
+
+  const navStyle = (aktiv: boolean): React.CSSProperties => ({
+    appearance: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: '0.9375rem',
+    padding: '7px 12px',
+    borderRadius: 6,
+    background: aktiv ? 'var(--accent-tinted)' : 'transparent',
+    color: aktiv ? 'var(--accent-text)' : 'var(--fg-2)',
+  });
 
   return (
     <header
@@ -61,26 +84,29 @@ export default function Header() {
         </a>
 
         <nav className="ws-hide-sm" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <span
-            aria-current="page"
-            style={{
-              fontWeight: 600,
-              fontSize: '0.9375rem',
-              padding: '7px 12px',
-              borderRadius: 6,
-              background: 'var(--accent-tinted)',
-              color: 'var(--accent-text)',
-            }}
-          >
+          <button type="button" style={navStyle(view === 'modell')} onClick={() => onView?.('modell')}>
             Datamodeller
-          </span>
+          </button>
+          <button
+            type="button"
+            style={{ ...navStyle(view === 'innboks'), display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            onClick={() => onView?.('innboks')}
+          >
+            Innboks
+            {innboksCount > 0 && <span className="pill pill--warning">{innboksCount}</span>}
+          </button>
+          {isAdmin && (
+            <button type="button" style={navStyle(view === 'admin')} onClick={() => onView?.('admin')}>
+              Admin
+            </button>
+          )}
         </nav>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="ws-hide-sm" style={{ fontSize: '0.82rem', color: 'var(--fg-2)' }}>Innlogget som</span>
           <span className="ws-hide-sm" style={{ fontSize: '0.85rem', color: 'var(--fg-1)', fontWeight: 500 }}>{visNavn}</span>
-          <span className={isDibk ? 'pill pill--success' : 'pill pill--info'}>
-            {isDibk ? 'DiBK' : 'Utvikler'}
+          <span className={isAdmin ? 'pill pill--danger' : isDibk ? 'pill pill--success' : 'pill pill--info'}>
+            {rolleLabel}
           </span>
           <span
             title={visNavn}

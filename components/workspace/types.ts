@@ -42,6 +42,8 @@ export const SUBTABS: { id: string; label: string }[] = [
   { id: 'dokumenter', label: 'Dokumenter' },
   { id: 'xsd', label: 'XSD' },
   { id: 'eksempel', label: 'Eksempel' },
+  { id: 'validerxml', label: 'Valider XML' },
   { id: 'diskusjon', label: 'Diskusjon' },
   { id: 'validering', label: 'Valideringsregler' },
+  { id: 'historikk', label: 'Historikk' },
 ];

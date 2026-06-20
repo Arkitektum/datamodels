@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
+import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
+import ConflictBanner from '@/components/shared/ConflictBanner';
 import { initBrevmalEditor, type BrevmalData, type BrevmalEditorHandle } from '@/lib/brevmalEditor';
 import { DATAMODELL_HTML } from '@/data/hoeringOgOffentligEttersynV2.brevmaler';
 
@@ -11,10 +13,13 @@ import { DATAMODELL_HTML } from '@/data/hoeringOgOffentligEttersynV2.brevmaler';
  * kobles opp av lib/brevmalEditor.ts og lagres delt via useDokumentData.
  */
 export default function BrevmalEditor({ datamodellId }: { datamodellId: string }) {
-  const { value, setValue, status } = useDokumentData<BrevmalData>(datamodellId, 'brevmaler', {});
+  const { value, setValue, status, revision, stale, reload } = useDokumentData<BrevmalData>(
+    datamodellId,
+    'brevmaler',
+    {},
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<BrevmalEditorHandle | null>(null);
-  const adopted = useRef(false);
   const valueRef = useRef(value);
   valueRef.current = value;
 
@@ -26,20 +31,23 @@ export default function BrevmalEditor({ datamodellId }: { datamodellId: string }
     return () => {
       handle.destroy();
       handleRef.current = null;
-      adopted.current = false;
     };
     // setValue er stabil (useCallback i useDokumentData)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Adopter delt/lastet data én gang når innlasting er ferdig.
-  useEffect(() => {
-    if (adopted.current) return;
-    if (status === 'idle' && handleRef.current) {
-      handleRef.current.load(valueRef.current || {});
-      adopted.current = true;
-    }
-  }, [status]);
+  useAdoptOnRevision(status, revision, () => {
+    handleRef.current?.load(valueRef.current || {});
+  });
 
-  return <div ref={containerRef} dangerouslySetInnerHTML={{ __html: DATAMODELL_HTML }} />;
+  return (
+    <>
+      <ConflictBanner
+        visible={status === 'conflict' || stale}
+        onReload={reload}
+        style={{ marginBottom: 12 }}
+      />
+      <div ref={containerRef} dangerouslySetInnerHTML={{ __html: DATAMODELL_HTML }} />
+    </>
+  );
 }

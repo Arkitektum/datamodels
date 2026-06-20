@@ -6,10 +6,12 @@ import {
   type CustomModell,
   listCustomModels,
   createCustomModel,
+  createCustomModelFromXsd,
   deleteCustomModel,
   setModellStatus,
 } from '@/lib/customModels';
 import type { ModellStatus } from '@/lib/datamodeller';
+import { subscribeTable } from '@/lib/realtime';
 import { useRolle } from '@/lib/roller';
 import {
   type Melding,
@@ -26,18 +28,23 @@ import {
   aapneForslagCount,
 } from '@/lib/diskusjon';
 import ValideringsreglerView from '@/components/regler/ValideringsreglerView';
-import Header from './Header';
+import AdminView from '@/components/admin/AdminView';
+import Header, { type HeaderView } from './Header';
 import Sidebar from './Sidebar';
 import DiskusjonPanel from './DiskusjonPanel';
+import InnboksView from './InnboksView';
+import GlobalSearch from './GlobalSearch';
 import DatamodellTab from './tabs/DatamodellTab';
 import DokumenterTab from './tabs/DokumenterTab';
 import XsdTab from './tabs/XsdTab';
 import EksempelTab from './tabs/EksempelTab';
 import DiskusjonTab from './tabs/DiskusjonTab';
+import ValiderXmlTab from './tabs/ValiderXmlTab';
+import HistorikkTab from './tabs/HistorikkTab';
 import { ModellView, STATUS_META, SUBTABS } from './types';
 
 export default function WorkspaceClient() {
-  const { rolle, navn, epost, isDibk } = useRolle();
+  const { rolle, navn, epost, isDibk, isAdmin } = useRolle();
   const [custom, setCustom] = useState<CustomModell[]>([]);
   const [customLoaded, setCustomLoaded] = useState(false);
   const [diskusjon, setDiskusjon] = useState<Melding[]>([]);
@@ -46,12 +53,14 @@ export default function WorkspaceClient() {
   const [threadCtx, setThreadCtx] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [editStruktur, setEditStruktur] = useState(false);
+  const [view, setView] = useState<HeaderView>('modell');
 
   // «Ny modell»-modal
   const [showCreate, setShowCreate] = useState(false);
   const [nyNavn, setNyNavn] = useState('');
   const [nyBesk, setNyBesk] = useState('');
   const [nyStatus, setNyStatus] = useState<ModellStatus>('arbeid');
+  const [nyXsd, setNyXsd] = useState<{ text: string; file: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const reloadCustom = useCallback(async () => {
@@ -63,6 +72,16 @@ export default function WorkspaceClient() {
   useEffect(() => {
     reloadCustom();
     reloadDiskusjon();
+  }, [reloadCustom, reloadDiskusjon]);
+
+  // Sanntid: oppdater diskusjon og modelliste live når andre brukere skriver.
+  useEffect(() => {
+    const avDiskusjon = subscribeTable('diskusjon', { onChange: () => reloadDiskusjon() });
+    const avModeller = subscribeTable('datamodell', { onChange: () => reloadCustom() });
+    return () => {
+      avDiskusjon();
+      avModeller();
+    };
   }, [reloadCustom, reloadDiskusjon]);
 
   // Deep-link: les ?model=…&fane=… fra URL ved oppstart, og synk URL ved endring.
@@ -156,6 +175,26 @@ export default function WorkspaceClient() {
     setThreadCtx(null);
     setActiveSub('datamodell');
     setEditStruktur(false);
+    setView('modell');
+    setSearch('');
+  }
+  // Hopp fra Innboksen til en felt-tråd i riktig modell.
+  function goToTraad(modellId: string, kontekst: string | null) {
+    setActiveId(modellId);
+    setActiveSub('diskusjon');
+    setThreadCtx(kontekst);
+    setEditStruktur(false);
+    setView('modell');
+    setSearch('');
+  }
+  // Hopp fra globalt søk til riktig modell + fane (+ evt. felt-tråd).
+  function goToTreff(modellId: string, fane: string, kontekst: string | null) {
+    setActiveId(modellId);
+    setActiveSub(SUBTABS.some((s) => s.id === fane) ? fane : 'datamodell');
+    setThreadCtx(kontekst);
+    setEditStruktur(false);
+    setView('modell');
+    setSearch('');
   }
   function onComment(ctx: string) {
     setThreadCtx(ctx);
@@ -206,7 +245,17 @@ export default function WorkspaceClient() {
     const n = nyNavn.trim();
     if (!n) return;
     setBusy(true);
-    const created = await createCustomModel(n, nyBesk.trim() || undefined, nyStatus);
+    let created: CustomModell | null;
+    try {
+      created = nyXsd
+        ? await createCustomModelFromXsd(n, nyBesk.trim() || undefined, nyStatus, nyXsd.text, nyXsd.file)
+        : await createCustomModel(n, nyBesk.trim() || undefined, nyStatus);
+    } catch (err) {
+      // createCustomModelFromXsd lar parseXsd kaste ved ugyldig XSD.
+      setBusy(false);
+      window.alert('Kunne ikke lese XSD: ' + (err as Error).message);
+      return;
+    }
     setBusy(false);
     if (!created) {
       window.alert('Kunne ikke opprette modellen. Sjekk at du er innlogget og at databasen tillater det.');
@@ -216,6 +265,7 @@ export default function WorkspaceClient() {
     setNyNavn('');
     setNyBesk('');
     setNyStatus('arbeid');
+    setNyXsd(null);
     await reloadCustom();
     selectModel(created.id);
   }
@@ -249,9 +299,20 @@ export default function WorkspaceClient() {
   const panelMessages = traadFor(diskusjon, activeId, threadCtx);
   const modelMessages = diskusjon.filter((m) => m.datamodell_id === activeId);
 
+  // Globalt søk + topp-visninger (Innboks/Admin) tar hovedområdet i full bredde
+  // og skjuler diskusjonspanelet.
+  const searchActive = search.trim().length > 0;
+  const wide = view !== 'modell' || searchActive;
+  const sokModeller = useMemo(() => models.map((m) => ({ id: m.id, navn: m.navn })), [models]);
+  const modellNavn = useMemo(() => {
+    const map = new Map(models.map((m) => [m.id, m.navn]));
+    return (id: string) => map.get(id) ?? id;
+  }, [models]);
+  const apneForslag = diskusjon.filter((m) => m.type === 'proposal' && m.status === 'open').length;
+
   return (
     <>
-      <Header />
+      <Header view={view} onView={setView} innboksCount={apneForslag} />
       <div style={{ minHeight: 'calc(100vh - 60px)', background: 'var(--bg-2)' }}>
         <div className="ws-layout">
           <Sidebar
@@ -265,7 +326,27 @@ export default function WorkspaceClient() {
             onOpenCreate={() => setShowCreate(true)}
           />
 
-          <main className="ws-main">
+          <main className={wide ? 'ws-main ws-main--wide' : 'ws-main'}>
+            {searchActive ? (
+              <GlobalSearch query={search} models={sokModeller} onGoTo={goToTreff} />
+            ) : view === 'innboks' ? (
+              <InnboksView
+                messages={diskusjon}
+                modellNavn={modellNavn}
+                canDecide={isDibk}
+                onGoTo={goToTraad}
+                onDecide={decide}
+              />
+            ) : view === 'admin' ? (
+              isAdmin ? (
+                <AdminView />
+              ) : (
+                <p className="p p-sm" style={{ color: 'var(--fg-2)' }}>
+                  Du har ikke admin-tilgang.
+                </p>
+              )
+            ) : (
+              <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <span
                 style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_META[model.status].dot, flexShrink: 0 }}
@@ -342,30 +423,36 @@ export default function WorkspaceClient() {
             {activeSub === 'dokumenter' && <DokumenterTab key={model.id} model={model} />}
             {activeSub === 'xsd' && <XsdTab key={model.id} model={model} />}
             {activeSub === 'eksempel' && <EksempelTab model={model} />}
+            {activeSub === 'validerxml' && <ValiderXmlTab key={model.id} model={model} />}
             {activeSub === 'diskusjon' && <DiskusjonTab messages={modelMessages} onOpen={openThread} />}
+            {activeSub === 'historikk' && <HistorikkTab key={model.id} model={model} />}
             {activeSub === 'validering' &&
               (model.builtin ? (
                 <ValideringsreglerView key={model.id} datamodellId={model.id} />
               ) : (
                 <ValideringsreglerView key={model.id} datamodellId={model.id} defaultGrupper={[]} root="" />
               ))}
+              </>
+            )}
           </main>
 
-          <DiskusjonPanel
-            ctx={threadCtx}
-            ctxLabel={ctxLabel}
-            modellNavn={model.navn}
-            messages={panelMessages}
-            canDecide={isDibk}
-            currentEpost={epost}
-            currentNavn={navn}
-            onBack={() => setThreadCtx(null)}
-            onSend={send}
-            onDecide={decide}
-            onEdit={editMessage}
-            onDeleteMessage={deleteMessage}
-            onClear={clearThread}
-          />
+          {!wide && (
+            <DiskusjonPanel
+              ctx={threadCtx}
+              ctxLabel={ctxLabel}
+              modellNavn={model.navn}
+              messages={panelMessages}
+              canDecide={isDibk}
+              currentEpost={epost}
+              currentNavn={navn}
+              onBack={() => setThreadCtx(null)}
+              onSend={send}
+              onDecide={decide}
+              onEdit={editMessage}
+              onDeleteMessage={deleteMessage}
+              onClear={clearThread}
+            />
+          )}
         </div>
       </div>
 
@@ -415,6 +502,27 @@ export default function WorkspaceClient() {
                 <option value="arbeid">Under arbeid</option>
                 <option value="planlagt">Planlagt</option>
               </select>
+            </label>
+            <label>
+              XSD (valgfritt)
+              <input
+                type="file"
+                accept=".xsd,.xml,application/xml,text/xml"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) {
+                    setNyXsd(null);
+                    return;
+                  }
+                  setNyXsd({ text: await f.text(), file: f.name });
+                }}
+                style={{ width: '100%', marginTop: 5, fontSize: '0.9rem' }}
+              />
+              <span style={{ fontSize: '0.78rem', color: 'var(--fg-2)', display: 'block', marginTop: 4 }}>
+                {nyXsd
+                  ? `Strukturen seedes fra «${nyXsd.file}».`
+                  : 'Last opp en XSD for å fylle datamodellen automatisk. Uten fil opprettes en tom modell.'}
+              </span>
             </label>
             <button type="submit" className="btn btn--primary btn--md" disabled={busy} style={{ marginTop: 8 }}>
               {busy ? 'Oppretter …' : 'Opprett modell'}

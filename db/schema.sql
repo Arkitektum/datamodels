@@ -22,12 +22,19 @@ create table if not exists public.dokument_data (
     primary key (datamodell_id, type)
 );
 alter table public.dokument_data add column if not exists sist_detalj text;
+-- Optimistisk samtidighetskontroll: versjon bumpes ved hver UPDATE (se trigger
+-- under). Appen leser versjon ved innlasting og skriver betinget, slik at to
+-- samtidige redigeringer ikke overskriver hverandre stille (useDokumentData).
+alter table public.dokument_data add column if not exists versjon bigint not null default 0;
 
--- Hold endret_tid oppdatert ved hver skriving.
+-- Hold endret_tid oppdatert ved hver skriving, og bump versjon ved UPDATE.
 create or replace function public.set_endret_tid()
 returns trigger language plpgsql as $$
 begin
     new.endret_tid := now();
+    if (tg_op = 'UPDATE') then
+        new.versjon := coalesce(old.versjon, 0) + 1;
+    end if;
     return new;
 end;
 $$;
@@ -104,6 +111,45 @@ create policy "logg_les" on public.endring_logg
     for select to authenticated using (true);
 
 -- ====================================================================
+-- VERSJONSHISTORIKK — snapshots av delt data, med gjenoppretting
+-- --------------------------------------------------------------------
+-- Mens endring_logg sier HVEM/HVA/NÅR, lagrer denne tabellen et SNAPSHOT
+-- av selve innholdet ved hver meningsfulle endring i dokument_data, slik
+-- at en tidligere versjon kan gjenopprettes (lib/historikk.ts). Samme
+-- spam-vern som logg-triggeren: snapshot kun når sist_detalj er satt.
+-- ====================================================================
+create table if not exists public.dokument_data_historikk (
+    id            bigint generated always as identity primary key,
+    datamodell_id text not null,
+    type          text not null,
+    innhold       jsonb,
+    versjon       bigint,
+    detalj        text,
+    endret_av     text,
+    endret_tid    timestamptz not null default now()
+);
+create index if not exists idx_ddh on public.dokument_data_historikk (datamodell_id, type, endret_tid desc);
+
+create or replace function public.snapshot_dokument_data() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+    if (new.sist_detalj is not null) then
+        insert into public.dokument_data_historikk(datamodell_id, type, innhold, versjon, detalj, endret_av)
+        values (new.datamodell_id, new.type, new.innhold, new.versjon, new.sist_detalj, new.endret_av);
+    end if;
+    return new;
+end;
+$$;
+drop trigger if exists trg_snapshot_dokument on public.dokument_data;
+create trigger trg_snapshot_dokument
+    after insert or update on public.dokument_data
+    for each row execute function public.snapshot_dokument_data();
+
+alter table public.dokument_data_historikk enable row level security;
+drop policy if exists "ddh_les" on public.dokument_data_historikk;
+create policy "ddh_les" on public.dokument_data_historikk for select to authenticated using (true);
+
+-- ====================================================================
 -- BRUKERROLLER — hvem er utvikler (Arkitektum) og hvem er DiBK
 -- --------------------------------------------------------------------
 -- Én rad per innlogget bruker (e-post). rolle styrer om brukeren kan
@@ -114,7 +160,7 @@ create policy "logg_les" on public.endring_logg
 -- ====================================================================
 create table if not exists public.bruker_rolle (
     epost text primary key,
-    rolle text not null default 'utvikler',   -- 'utvikler' | 'dibk'
+    rolle text not null default 'utvikler',   -- 'utvikler' | 'ceo' | 'team_lead' | 'dibk' | 'admin'  ('ceo'/'team_lead' = samme rettigheter som 'utvikler', kun egen etikett)
     navn  text
 );
 alter table public.bruker_rolle enable row level security;
@@ -123,15 +169,61 @@ drop policy if exists "rolle_les" on public.bruker_rolle;
 create policy "rolle_les" on public.bruker_rolle
     for select to authenticated using (true);
 
--- Hjelpefunksjon: er innlogget bruker DiBK-saksbehandler?
+-- Hjelpefunksjon: er innlogget bruker admin?
+create or replace function public.er_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+    select exists (
+        select 1 from public.bruker_rolle
+        where lower(epost) = lower(coalesce(auth.jwt() ->> 'email', ''))
+          and rolle = 'admin'
+    );
+$$;
+
+-- Hjelpefunksjon: er innlogget bruker DiBK-saksbehandler? Admin arver
+-- DiBK-rettigheter (godkjenne/avvise forslag), så begge regnes som DiBK her.
 create or replace function public.er_dibk()
 returns boolean language sql stable security definer set search_path = public as $$
     select exists (
         select 1 from public.bruker_rolle
         where lower(epost) = lower(coalesce(auth.jwt() ->> 'email', ''))
-          and rolle = 'dibk'
+          and rolle in ('dibk', 'admin')
     );
 $$;
+
+-- Skrivetilgang på roller: KUN admin (insert/update/delete via «for all»).
+-- Lesing dekkes fortsatt av rolle_les. Admin styrer roller fra admin-siden.
+drop policy if exists "rolle_admin_skriv" on public.bruker_rolle;
+create policy "rolle_admin_skriv" on public.bruker_rolle
+    for all to authenticated using (public.er_admin()) with check (public.er_admin());
+
+-- Vern mot utelåsing: hindre at den SISTE admin-raden slettes eller nedgraderes,
+-- ellers kan ingen lenger skrive bruker_rolle (rolle_admin_skriv krever en
+-- eksisterende admin) og rolleadministrasjon må repareres manuelt i SQL.
+create or replace function public.vern_siste_admin()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+    if (tg_op = 'DELETE' and old.rolle = 'admin')
+       or (tg_op = 'UPDATE' and old.rolle = 'admin' and new.rolle is distinct from 'admin') then
+        if not exists (
+            select 1 from public.bruker_rolle
+            where rolle = 'admin' and lower(epost) <> lower(old.epost)
+        ) then
+            raise exception 'Kan ikke fjerne eller nedgradere den siste admin-brukeren';
+        end if;
+    end if;
+    return case when tg_op = 'DELETE' then old else new end;
+end;
+$$;
+drop trigger if exists trg_vern_siste_admin on public.bruker_rolle;
+create trigger trg_vern_siste_admin
+    before update or delete on public.bruker_rolle
+    for each row execute function public.vern_siste_admin();
+
+-- BOOTSTRAP: ingen admin finnes i starten, og rolle_admin_skriv krever at man
+-- ALLEREDE er admin. Sett den første admin-raden manuelt én gang her, f.eks.:
+--   insert into public.bruker_rolle (epost, rolle, navn)
+--   values ('mille@arkitektum.no', 'admin', 'Mille Brekke Amundsen')
+--   on conflict (epost) do update set rolle = 'admin';
 
 -- ====================================================================
 -- DISKUSJON — kommentarer og endringsforslag per modell/felt
@@ -152,10 +244,15 @@ create table if not exists public.diskusjon (
     felt          text,                 -- forslag: feltnavn
     endring       text,                 -- forslag: 'fra → til'
     status        text,                 -- forslag: 'open' | 'approved' | 'rejected'
+    avgjort_av    text,                 -- e-post til DiBK-bruker som avgjorde forslaget
+    avgjort_tid   timestamptz,          -- tidspunkt forslaget ble godkjent/avvist
     opprettet     timestamptz not null default now()
 );
 -- For databaser opprettet før 'epost' fantes:
 alter table public.diskusjon add column if not exists epost text;
+-- Audit-spor: hvem/når avgjorde et endringsforslag (settes av appen).
+alter table public.diskusjon add column if not exists avgjort_av text;
+alter table public.diskusjon add column if not exists avgjort_tid timestamptz;
 create index if not exists idx_diskusjon_modell on public.diskusjon (datamodell_id);
 
 alter table public.diskusjon enable row level security;
@@ -262,3 +359,28 @@ create policy "dok_storage_ny" on storage.objects
 drop policy if exists "dok_storage_slett" on storage.objects;
 create policy "dok_storage_slett" on storage.objects
     for delete to authenticated using (bucket_id = 'dokumenter');
+
+-- ====================================================================
+-- REALTIME — live-oppdatering av delt data
+-- --------------------------------------------------------------------
+-- Legg tabellene til i Supabase sin realtime-publikasjon så klienter kan
+-- abonnere på endringer (lib/realtime.ts → subscribeTable). Diskusjon og
+-- modelliste oppdateres live; dokument_data brukes til å oppdage at andre
+-- har lagret. Idempotent: DO-blokken sjekker pg_publication_tables først.
+-- MERK: Realtime må også være skrudd PÅ for prosjektet i Supabase Studio.
+-- ====================================================================
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'dokument_data') then
+    alter publication supabase_realtime add table public.dokument_data;
+  end if;
+  if not exists (select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'diskusjon') then
+    alter publication supabase_realtime add table public.diskusjon;
+  end if;
+  if not exists (select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'datamodell') then
+    alter publication supabase_realtime add table public.datamodell;
+  end if;
+end $$;
