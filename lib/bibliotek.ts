@@ -16,7 +16,8 @@ import {
   modellKlasser,
 } from '@/lib/sjekklisteApi';
 import { DATAMODELLER } from '@/lib/datamodeller';
-import { getSupabase, SUPABASE_TABLE } from '@/lib/supabase';
+import { SUPABASE_TABLE } from '@/lib/supabase';
+import { getServerSupabase } from '@/lib/supabaseServer';
 import type { Struktur } from '@/lib/struktur';
 
 /** sosiKey-ar for modeller som er utdaterte og kun bør vises som referanse. */
@@ -197,7 +198,7 @@ interface EgenModell {
 }
 
 async function hentEgneModeller(): Promise<EgenModell[]> {
-  const supabase = getSupabase();
+  const supabase = getServerSupabase();
   if (!supabase) return [];
   const { data: modeller, error: mErr } = await supabase
     .from('datamodell')

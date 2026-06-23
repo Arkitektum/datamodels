@@ -12,12 +12,12 @@ import {
   type ApiSjekkpunkt,
 } from '@/lib/sjekklisteApi';
 import { DATAMODELLER } from '@/lib/datamodeller';
-import { getSupabase, SUPABASE_TABLE } from '@/lib/supabase';
+import { SUPABASE_TABLE } from '@/lib/supabase';
+import { getServerSupabase } from '@/lib/supabaseServer';
 import type { VedleggType } from '@/data/hoeringOgOffentligEttersynV2.kodelister';
 
 /**
- * Mapping fra portalens vedlegg-navn til SOSI-dokumenttypekode. Bekreftet med
- * Mille 2026-06-23. «Annet» kobles ikke. Sjekkpunkt-koder uten vedlegg-motpart
+ * Mapping fra portalens vedlegg-navn til SOSI-dokumenttypekode. «Annet» kobles ikke. Sjekkpunkt-koder uten vedlegg-motpart
  * (KUNNGJ, UTTALELSE) er prosess-artefakter og faller naturlig utenfor.
  */
 export const DOKUMENTTYPE_MAP: Record<string, string> = {
@@ -53,7 +53,7 @@ export interface RelevanteResultat {
 
 /** Hent modellens forventede vedlegg (Supabase-overstyring ellers innebygd default). */
 async function hentVedlegg(modellId: string): Promise<VedleggType[]> {
-  const supabase = getSupabase();
+  const supabase = getServerSupabase();
   if (supabase) {
     try {
       const { data } = await supabase
