@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
 import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
 import ConflictBanner from '@/components/shared/ConflictBanner';
-import { parseXsd, serializeXsd } from '@/lib/xsd';
+import { parseXsd, serializeXsd, erGyldigNcName } from '@/lib/xsd';
 import { deleteTraad, flyttTraad, ryddForeldreloeseKontekster } from '@/lib/diskusjon';
 import type { Struktur, StrukturObjekt, StrukturFelt } from '@/lib/struktur';
 
@@ -180,6 +180,13 @@ export default function StrukturView({
     URL.revokeObjectURL(url);
   }
 
+  // Et navn er ugyldig som XSD-navn hvis det er fylt ut, men ikke et gyldig
+  // NCName (mellomrom, spesialtegn, ledende siffer). Tomme (uferdige) navn
+  // flagges ikke her – de er ufullstendige, ikke feil.
+  const navnUgyldig = (navn: string) => navn.trim() !== '' && !erGyldigNcName(navn.trim());
+  const UGYLDIG_NAVN_TIPS =
+    'Ugyldig XSD-navn: bruk bokstaver, sifre, «.», «-» eller «_» – uten mellomrom, og ikke start med et siffer.';
+
   // Forslag til type-feltet: innebygde XSD-typer + alle objektnavn i modellen.
   const typeForslag = Array.from(
     new Set([...TYPE_FORSLAG, ...objekter.map((o) => o.navn).filter(Boolean)]),
@@ -241,11 +248,17 @@ export default function StrukturView({
                 onFocus={(e) => (focusVal.current = e.target.value)}
                 onBlur={(e) => onBlurObjektnavn(oi, e.target.value)}
                 placeholder="Objektnavn"
+                style={navnUgyldig(obj.navn) ? { borderColor: 'var(--danger-base)' } : undefined}
+                title={navnUgyldig(obj.navn) ? UGYLDIG_NAVN_TIPS : undefined}
+                aria-invalid={navnUgyldig(obj.navn) || undefined}
               />
               <button type="button" className="dm-del" onClick={() => deleteObjekt(oi)} title="Slett objekt">
                 ×
               </button>
             </div>
+            {navnUgyldig(obj.navn) && (
+              <p style={{ color: 'var(--danger-text)', fontSize: '0.8rem', margin: '4px 0 0' }}>⚠ {UGYLDIG_NAVN_TIPS}</p>
+            )}
             <label className="struktur-gruppe">
               <span className="muted">Gruppe</span>
               <input
@@ -288,6 +301,9 @@ export default function StrukturView({
                           onFocus={(e) => (focusVal.current = e.target.value)}
                           onBlur={(e) => onBlurFeltnavn(oi, e.target.value)}
                           placeholder="feltnavn"
+                          style={navnUgyldig(f.navn) ? { borderColor: 'var(--danger-base)' } : undefined}
+                          title={navnUgyldig(f.navn) ? UGYLDIG_NAVN_TIPS : undefined}
+                          aria-invalid={navnUgyldig(f.navn) || undefined}
                         />
                       </td>
                       <td>

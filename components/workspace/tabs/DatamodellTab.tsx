@@ -202,6 +202,19 @@ export default function DatamodellTab({
                     </span>
                   </button>
 
+                  {isOpen && obj.beskrivelse && (
+                    <div
+                      style={{
+                        padding: '10px 16px',
+                        borderTop: '1px solid var(--neutral-border)',
+                        color: 'var(--fg-2)',
+                        fontSize: '0.86rem',
+                      }}
+                    >
+                      {obj.beskrivelse}
+                    </div>
+                  )}
+
                   {isOpen &&
                     (obj.felt || []).map((fld, fi) => {
                       const ctx = obj.navn + '.' + fld.navn;

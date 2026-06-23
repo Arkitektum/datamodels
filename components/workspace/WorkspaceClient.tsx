@@ -42,6 +42,7 @@ import DiskusjonPanel from './DiskusjonPanel';
 import InnboksView from './InnboksView';
 import GlobalSearch from './GlobalSearch';
 import DatamodellTab from './tabs/DatamodellTab';
+import DiagramTab from './tabs/DiagramTab';
 import DokumenterTab from './tabs/DokumenterTab';
 import XsdTab from './tabs/XsdTab';
 import EksempelTab from './tabs/EksempelTab';
@@ -448,6 +449,7 @@ export default function WorkspaceClient() {
                 onDiskusjonEndret={reloadDiskusjon}
               />
             )}
+            {activeSub === 'diagram' && <DiagramTab key={model.id} model={model} />}
             {activeSub === 'dokumenter' && <DokumenterTab key={model.id} model={model} />}
             {activeSub === 'xsd' && <XsdTab key={model.id} model={model} />}
             {activeSub === 'eksempel' && <EksempelTab model={model} />}

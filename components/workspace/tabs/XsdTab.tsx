@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
-import { serializeXsd, type XsdKilde } from '@/lib/xsd';
+import { parseXsd, serializeXsd, xsdGyldighetsproblemer, type XsdKilde } from '@/lib/xsd';
 import type { Struktur } from '@/lib/struktur';
 import { ModellView } from '../types';
 
@@ -16,22 +16,51 @@ export default function XsdTab({ model }: { model: ModellView }) {
   const { value: kilde } = useDokumentData<XsdKilde | null>(model.id, 'xsdkilde', null);
   const [kopiert, setKopiert] = useState(false);
 
-  // Prioritet: opplastet XSD (ordrett) → kanonisk (innebygd) → generert fra struktur.
+  const s = useMemo(() => (Array.isArray(struktur) ? struktur : []), [struktur]);
+
+  // Utgangspunktet XSD-en ble bygd på: den opplastede XSD-en (parset) eller den
+  // innebygde standardstrukturen. Brukes til å avgjøre om brukeren har redigert
+  // datamodellen vekk fra dette.
+  const kildeStruktur = useMemo<Struktur | null>(() => {
+    if (kilde?.src) {
+      try {
+        return parseXsd(kilde.src);
+      } catch {
+        return null;
+      }
+    }
+    return model.defaultStruktur?.length ? model.defaultStruktur : null;
+  }, [kilde, model.defaultStruktur]);
+
+  // Sann når strukturen er endret fra utgangspunktet (opplastet/innebygd).
+  const redigert = useMemo(() => {
+    if (!kildeStruktur) return s.length > 0;
+    return JSON.stringify(s) !== JSON.stringify(kildeStruktur);
+  }, [s, kildeStruktur]);
+
   const generert = useMemo(() => {
-    const s = Array.isArray(struktur) ? struktur : [];
-    if (kilde?.src || model.xsd) return null;
     if (s.length === 0) return null;
     try {
       return serializeXsd(s);
     } catch {
       return null;
     }
-  }, [struktur, model.xsd, kilde]);
+  }, [s]);
 
-  const opplastet = !!kilde?.src;
-  const src = kilde?.src ?? model.xsd?.src ?? generert ?? '';
+  // Er datamodellen redigert, viser vi XSD generert fra strukturen slik at
+  // endringene gjenspeiles. Er den uendret, viser vi den ordrette opplastede /
+  // håndskrevne innebygde XSD-en.
+  const brukGenerert = redigert && !!generert;
+  const opplastet = !!kilde?.src && !brukGenerert;
+  const src = brukGenerert ? (generert as string) : (kilde?.src ?? model.xsd?.src ?? generert ?? '');
   const file = kilde?.file ?? model.xsd?.file ?? (model.root || model.navn) + '.xsd';
-  const ns = (kilde?.src ? extractNs(kilde.src) : model.xsd?.ns) ?? struktur?.[0]?.targetNamespace ?? '';
+  const ns = extractNs(src) || model.xsd?.ns || s[0]?.targetNamespace || '';
+
+  // Når XSD-en er generert fra strukturen, kan redigerte navn gjøre den ugyldig
+  // (velformet, men ikke skjema-gyldig). Vis det før man laster ned. Ordrett
+  // opplastet/innebygd XSD sjekkes ikke – den kommer fra en ferdig fil.
+  const viserGenerert = generert != null && src === generert;
+  const problemer = useMemo(() => (viserGenerert ? xsdGyldighetsproblemer(s) : []), [viserGenerert, s]);
 
   if (!src) {
     return (
@@ -70,6 +99,26 @@ export default function XsdTab({ model }: { model: ModellView }) {
 
   return (
     <div>
+      {problemer.length > 0 && (
+        <div className="callout callout--warning" style={{ marginBottom: 12 }}>
+          <span className="callout-icon" />
+          <div>
+            <strong className="callout-title">
+              XSD-en er generert fra datamodellen, men har {problemer.length} gyldighetsproblem
+              {problemer.length === 1 ? '' : 'er'}
+            </strong>
+            <div>XSD-en er velformet, men ikke skjema-gyldig før dette er rettet i Datamodell-fanen:</div>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {problemer.slice(0, 8).map((p, i) => (
+                <li key={i}>
+                  <code>{p.sti}</code> – {p.melding}
+                </li>
+              ))}
+              {problemer.length > 8 && <li>… og {problemer.length - 8} til</li>}
+            </ul>
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <span
           style={{

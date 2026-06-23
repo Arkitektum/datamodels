@@ -39,6 +39,7 @@ export const STATUS_ORDER: ModellStatus[] = ['publisert', 'arbeid', 'planlagt'];
 
 export const SUBTABS: { id: string; label: string }[] = [
   { id: 'datamodell', label: 'Datamodell' },
+  { id: 'diagram', label: 'Diagram' },
   { id: 'dokumenter', label: 'Dokumenter' },
   { id: 'xsd', label: 'XSD' },
   { id: 'eksempel', label: 'Eksempel' },

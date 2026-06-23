@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 // parseXsd bruker DOMParser (nettleser-API) – jsdom-miljøet gir den.
 import { describe, it, expect } from 'vitest';
-import { parseXsd, serializeXsd } from '@/lib/xsd';
+import { parseXsd, serializeXsd, erGyldigNcName, xsdGyldighetsproblemer } from '@/lib/xsd';
+import type { Struktur } from '@/lib/struktur';
+
+function velformet(xml: string): boolean {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  return doc.getElementsByTagName('parsererror').length === 0;
+}
 
 const XSD = `<?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -90,5 +96,78 @@ describe('parseXsd -> serializeXsd round-trip', () => {
 
     // Beskrivelse på objektet bevares.
     expect(tb.beskrivelse).toContain('Et tiltak.');
+  });
+});
+
+describe('serializeXsd – velformethet og tom partikkel', () => {
+  it('skriver ingen tom xs:sequence for objekt uten elementer', () => {
+    const s: Struktur = [{ navn: 'Tom', beskrivelse: '', felt: [] }];
+    const xml = serializeXsd(s);
+    expect(xml).not.toMatch(/<xs:sequence>/);
+    expect(velformet(xml)).toBe(true);
+  });
+
+  it('skriver sequence kun for elementer, ikke for rene attributt-objekter', () => {
+    const s: Struktur = [
+      { navn: 'KunAttr', beskrivelse: '', felt: [{ navn: 'id', type: 'string', kardinalitet: '1..1', beskrivelse: '', attributt: true }] },
+    ];
+    const xml = serializeXsd(s);
+    expect(xml).not.toMatch(/<xs:sequence>/);
+    expect(xml).toMatch(/<xs:attribute name="id"/);
+    expect(velformet(xml)).toBe(true);
+  });
+
+  it('gir velformet XML for navn og beskrivelser med spesialtegn', () => {
+    const s: Struktur = [
+      {
+        navn: 'A',
+        beskrivelse: 'a & b < c > d "e"',
+        targetNamespace: 'urn:x?a=1&b=2',
+        felt: [{ navn: 'x', type: 'string', kardinalitet: '1..1', beskrivelse: '< & >' }],
+      },
+    ];
+    expect(velformet(serializeXsd(s))).toBe(true);
+  });
+});
+
+describe('erGyldigNcName', () => {
+  it('godtar gyldige navn (inkl. norske bokstaver)', () => {
+    for (const n of ['Tiltak', '_skjult', 'navn-2', 'a.b_c', 'gårdsnavn', 'Søknad']) {
+      expect(erGyldigNcName(n), n).toBe(true);
+    }
+  });
+  it('avviser ugyldige navn', () => {
+    for (const n of ['', 'med mellomrom', '2start', 'ns:navn', 'a/b', 'æ ø']) {
+      expect(erGyldigNcName(n), n).toBe(false);
+    }
+  });
+});
+
+describe('xsdGyldighetsproblemer', () => {
+  it('finner ugyldige objekt-, felt-, attributt- og rotelementnavn', () => {
+    const s: Struktur = [
+      {
+        navn: 'Tiltak Type',
+        beskrivelse: '',
+        rotElement: '2rot',
+        felt: [
+          { navn: 'gate navn', type: 'string', kardinalitet: '1..1', beskrivelse: '' },
+          { navn: 'id felt', type: 'string', kardinalitet: '1..1', beskrivelse: '', attributt: true },
+        ],
+      },
+    ];
+    const p = xsdGyldighetsproblemer(s);
+    expect(p.map((x) => x.sti)).toEqual(
+      expect.arrayContaining(['Tiltak Type', 'Tiltak Type.gate navn', 'Tiltak Type.id felt']),
+    );
+    expect(p.some((x) => /Rotelementet/.test(x.melding))).toBe(true);
+    expect(p.some((x) => /Attributtnavnet/.test(x.melding))).toBe(true);
+  });
+
+  it('returnerer tomt for en gyldig struktur', () => {
+    const s: Struktur = [
+      { navn: 'Tiltak', beskrivelse: '', rotElement: 'Tiltak', felt: [{ navn: 'navn', type: 'string', kardinalitet: '1..1', beskrivelse: '' }] },
+    ];
+    expect(xsdGyldighetsproblemer(s)).toEqual([]);
   });
 });

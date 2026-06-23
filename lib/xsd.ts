@@ -309,9 +309,14 @@ export function serializeXsd(struktur: Struktur): string {
     lines.push(`  <xs:complexType name="${xmlEscape(navn)}">`);
     const ann = annotation(obj.beskrivelse, '    ');
     if (ann) lines.push(ann.replace(/\n$/, ''));
-    lines.push(`    <xs:${part}>`);
-    for (const f of elementer) writeElement(f, lines);
-    lines.push(`    </xs:${part}>`);
+    // En tom partikkel (xs:sequence/all/choice uten element) er ugyldig XSD; skriv
+    // den bare når det finnes elementer. Et objekt med kun attributter – eller helt
+    // tomt – blir da en gyldig complexType (evt. helt uten innhold).
+    if (elementer.length) {
+      lines.push(`    <xs:${part}>`);
+      for (const f of elementer) writeElement(f, lines);
+      lines.push(`    </xs:${part}>`);
+    }
     for (const f of attributter) writeAttribute(f, lines);
     lines.push('  </xs:complexType>');
   }
@@ -319,4 +324,46 @@ export function serializeXsd(struktur: Struktur): string {
   lines.push('');
   lines.push('</xs:schema>');
   return lines.join('\n');
+}
+
+// ── Gyldighet (NCName-navn) ──────────────────────────────────────────────────
+// serializeXsd gir alltid VELFORMET XML, men XSD krever at element-, attributt-,
+// type- og rotelementnavn er gyldige NCName: starter med bokstav/understrek, så
+// bokstaver/sifre/«.»/«-»/«_» – ingen mellomrom, kolon eller ledende siffer.
+const NCNAME_RE = /^[\p{L}_][\p{L}\p{N}._-]*$/u;
+
+export function erGyldigNcName(navn: string): boolean {
+  return NCNAME_RE.test(navn);
+}
+
+export interface XsdGyldighetsproblem {
+  /** «Objekt» eller «Objekt.felt» – hvor problemet er. */
+  sti: string;
+  melding: string;
+}
+
+/** Finner navn i strukturen som ikke gir gyldig XSD (ugyldige NCName-navn).
+ *  Tomme partikler håndteres allerede av serializeXsd, så de rapporteres ikke. */
+export function xsdGyldighetsproblemer(struktur: Struktur): XsdGyldighetsproblem[] {
+  const ut: XsdGyldighetsproblem[] = [];
+  for (const o of struktur) {
+    const objNavn = (o.navn || '').trim();
+    const visObj = objNavn || '(uten navn)';
+    if (!erGyldigNcName(objNavn)) {
+      ut.push({ sti: visObj, melding: `Objektnavnet «${visObj}» er ikke et gyldig XSD-navn.` });
+    }
+    if (o.rotElement != null && !erGyldigNcName(o.rotElement.trim())) {
+      ut.push({ sti: visObj, melding: `Rotelementet «${o.rotElement}» er ikke et gyldig XSD-navn.` });
+    }
+    for (const f of o.felt) {
+      const feltNavn = (f.navn || '').trim();
+      if (!erGyldigNcName(feltNavn)) {
+        ut.push({
+          sti: `${visObj}.${feltNavn || '(uten navn)'}`,
+          melding: `${f.attributt ? 'Attributtnavnet' : 'Feltnavnet'} «${feltNavn || '(uten navn)'}» er ikke et gyldig XSD-navn.`,
+        });
+      }
+    }
+  }
+  return ut;
 }
