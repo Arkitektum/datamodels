@@ -27,6 +27,13 @@ import {
   feltCount,
   aapneForslagCount,
 } from '@/lib/diskusjon';
+import {
+  fetchAllReaksjoner,
+  settReaksjon,
+  fjernReaksjon,
+  type Reaksjon,
+  type ReaksjonVerdi,
+} from '@/lib/reaksjoner';
 import ValideringsreglerView from '@/components/regler/ValideringsreglerView';
 import AdminView from '@/components/admin/AdminView';
 import Header, { type HeaderView } from './Header';
@@ -48,6 +55,7 @@ export default function WorkspaceClient() {
   const [custom, setCustom] = useState<CustomModell[]>([]);
   const [customLoaded, setCustomLoaded] = useState(false);
   const [diskusjon, setDiskusjon] = useState<Melding[]>([]);
+  const [reaksjoner, setReaksjoner] = useState<Reaksjon[]>([]);
   const [activeId, setActiveId] = useState<string>(DATAMODELLER[0].id);
   const [activeSub, setActiveSub] = useState<string>('datamodell');
   const [threadCtx, setThreadCtx] = useState<string | null>(null);
@@ -68,21 +76,25 @@ export default function WorkspaceClient() {
     setCustomLoaded(true);
   }, []);
   const reloadDiskusjon = useCallback(async () => setDiskusjon(await fetchAllDiskusjon()), []);
+  const reloadReaksjoner = useCallback(async () => setReaksjoner(await fetchAllReaksjoner()), []);
 
   useEffect(() => {
     reloadCustom();
     reloadDiskusjon();
-  }, [reloadCustom, reloadDiskusjon]);
+    reloadReaksjoner();
+  }, [reloadCustom, reloadDiskusjon, reloadReaksjoner]);
 
-  // Sanntid: oppdater diskusjon og modelliste live når andre brukere skriver.
+  // Sanntid: oppdater diskusjon, reaksjoner og modelliste live når andre skriver.
   useEffect(() => {
     const avDiskusjon = subscribeTable('diskusjon', { onChange: () => reloadDiskusjon() });
+    const avReaksjon = subscribeTable('diskusjon_reaksjon', { onChange: () => reloadReaksjoner() });
     const avModeller = subscribeTable('datamodell', { onChange: () => reloadCustom() });
     return () => {
       avDiskusjon();
+      avReaksjon();
       avModeller();
     };
-  }, [reloadCustom, reloadDiskusjon]);
+  }, [reloadCustom, reloadDiskusjon, reloadReaksjoner]);
 
   // Deep-link: les ?model=…&fane=… fra URL ved oppstart, og synk URL ved endring.
   const dlKlar = useRef(false);
@@ -238,6 +250,21 @@ export default function WorkspaceClient() {
     if (!window.confirm('Tømme denne tråden? (delt — påvirker alle)')) return;
     await deleteTraad(activeId, threadCtx);
     reloadDiskusjon();
+  }
+  // Veksle 👍/👎 på en kommentar: samme verdi igjen fjerner reaksjonen.
+  async function toggleReaksjon(meldingId: string, verdi: ReaksjonVerdi) {
+    if (!epost) {
+      window.alert('Du må være innlogget for å reagere.');
+      return;
+    }
+    const mine = reaksjoner.find(
+      (r) => r.melding_id === meldingId && r.epost.toLowerCase() === epost.toLowerCase(),
+    );
+    const ok = mine?.verdi === verdi
+      ? await fjernReaksjon(meldingId, epost)
+      : await settReaksjon(meldingId, epost, navn, verdi);
+    if (!ok) window.alert('Kunne ikke lagre reaksjonen. Du kan ikke reagere på din egen kommentar.');
+    reloadReaksjoner();
   }
 
   async function submitCreate(e: React.FormEvent) {
@@ -442,12 +469,14 @@ export default function WorkspaceClient() {
               ctxLabel={ctxLabel}
               modellNavn={model.navn}
               messages={panelMessages}
+              reaksjoner={reaksjoner}
               canDecide={isDibk}
               currentEpost={epost}
               currentNavn={navn}
               onBack={() => setThreadCtx(null)}
               onSend={send}
               onDecide={decide}
+              onReact={toggleReaksjon}
               onEdit={editMessage}
               onDeleteMessage={deleteMessage}
               onClear={clearThread}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ForslagStatus, Melding, MeldingType } from '@/lib/diskusjon';
+import type { Reaksjon, ReaksjonVerdi } from '@/lib/reaksjoner';
 
 function statusPill(status: ForslagStatus | null) {
   if (status === 'approved') return { cls: 'pill pill--success', label: 'Godkjent' };
@@ -14,12 +15,14 @@ export default function DiskusjonPanel({
   ctxLabel,
   modellNavn,
   messages,
+  reaksjoner,
   canDecide,
   currentEpost,
   currentNavn,
   onBack,
   onSend,
   onDecide,
+  onReact,
   onEdit,
   onDeleteMessage,
   onClear,
@@ -28,12 +31,14 @@ export default function DiskusjonPanel({
   ctxLabel: string;
   modellNavn: string;
   messages: Melding[];
+  reaksjoner: Reaksjon[];
   canDecide: boolean;
   currentEpost: string;
   currentNavn: string;
   onBack: () => void;
   onSend: (p: { type: MeldingType; body: string; felt?: string; endring?: string }) => Promise<void> | void;
   onDecide: (id: string, status: ForslagStatus) => void;
+  onReact: (meldingId: string, verdi: ReaksjonVerdi) => void;
   onEdit: (id: string, patch: { body?: string; endring?: string }) => Promise<void> | void;
   onDeleteMessage: (id: string) => void;
   onClear: () => void;
@@ -102,6 +107,62 @@ export default function DiskusjonPanel({
       </div>
     </div>
   );
+
+  // 👍/👎 på en kommentar. Skjult/inaktiv på egne meldinger og når man ikke er
+  // innlogget. Trykk samme verdi igjen for å fjerne reaksjonen.
+  const reaksjonerRad = (m: Melding) => {
+    if (m.type !== 'comment') return null;
+    const up = reaksjoner.filter((r) => r.melding_id === m.id && r.verdi === 'up').length;
+    const ned = reaksjoner.filter((r) => r.melding_id === m.id && r.verdi === 'down').length;
+    const mine = currentEpost
+      ? reaksjoner.find(
+          (r) => r.melding_id === m.id && r.epost.toLowerCase() === currentEpost.toLowerCase(),
+        )?.verdi
+      : undefined;
+    const egen = eier(m);
+    const kanReagere = !egen && !!currentEpost;
+    // På egne kommentarer kan man ikke reagere — vis bare et lesbart antall når
+    // noen faktisk har reagert, ellers ingenting.
+    if (egen && up + ned === 0) return null;
+
+    const pille = (verdi: ReaksjonVerdi, emoji: string, antall: number) => {
+      const aktiv = mine === verdi;
+      return (
+        <button
+          type="button"
+          disabled={!kanReagere}
+          onClick={kanReagere ? () => onReact(m.id, verdi) : undefined}
+          title={
+            kanReagere
+              ? verdi === 'up' ? 'Enig' : 'Uenig'
+              : eier(m) ? 'Du kan ikke reagere på din egen kommentar' : 'Logg inn for å reagere'
+          }
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: '0.78rem',
+            padding: '2px 8px',
+            borderRadius: 999,
+            border: `1px solid ${aktiv ? 'var(--accent-border)' : 'var(--neutral-border)'}`,
+            background: aktiv ? 'var(--accent-tinted)' : 'var(--bg-1)',
+            color: aktiv ? 'var(--accent-text)' : 'var(--fg-2)',
+            cursor: kanReagere ? 'pointer' : 'default',
+          }}
+        >
+          <span>{emoji}</span>
+          {antall > 0 && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{antall}</span>}
+        </button>
+      );
+    };
+
+    return (
+      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+        {pille('up', '👍', up)}
+        {pille('down', '👎', ned)}
+      </div>
+    );
+  };
 
   const eierAksjoner = (m: Melding) =>
     eier(m) && editId !== m.id ? (
@@ -264,6 +325,7 @@ export default function DiskusjonPanel({
                     >
                       {m.body}
                     </div>
+                    {reaksjonerRad(m)}
                     {eierAksjoner(m)}
                   </>
                 )}
