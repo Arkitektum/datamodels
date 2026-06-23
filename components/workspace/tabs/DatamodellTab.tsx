@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
 import StrukturView from '@/components/struktur/StrukturView';
+import SjekklisteSeksjon from '@/components/struktur/SjekklisteSeksjon';
 import { parseXsd, type XsdKilde } from '@/lib/xsd';
 import type { Struktur } from '@/lib/struktur';
 import { ModellView } from '../types';
@@ -136,6 +137,8 @@ export default function DatamodellTab({
           Rediger struktur
         </button>
       </div>
+
+      <SjekklisteSeksjon modellId={model.id} />
 
       {groupSeq.map((gl) => {
         const objs = objekter.filter((o) => (o.group || FALLBACK_GROUP) === gl);

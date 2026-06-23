@@ -6,6 +6,7 @@ import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
 import ConflictBanner from '@/components/shared/ConflictBanner';
 import { parseXsd, serializeXsd } from '@/lib/xsd';
 import type { Struktur, StrukturObjekt, StrukturFelt } from '@/lib/struktur';
+import BibliotekKnapp from './BibliotekKnapp';
 
 // Standard XSD-kardinaliteter. Ikke-standard verdier (f.eks. fra import) legges
 // til dynamisk i nedtrekkslista så de aldri forsvinner.
@@ -181,6 +182,7 @@ export default function StrukturView({
                 onBlur={(e) => logBlur('Objektnavn', e.target.value)}
                 placeholder="Objektnavn"
               />
+              <BibliotekKnapp navn={obj.navn} kind="objekt" />
               <button type="button" className="dm-del" onClick={() => deleteObjekt(oi)} title="Slett objekt">
                 ×
               </button>
@@ -209,14 +211,17 @@ export default function StrukturView({
                   {obj.felt.map((f, fi) => (
                     <tr key={fi}>
                       <td>
-                        <input
-                          className="struktur-celle"
-                          value={f.navn}
-                          onChange={(e) => patchFelt(oi, fi, { navn: e.target.value })}
-                          onFocus={(e) => (focusVal.current = e.target.value)}
-                          onBlur={(e) => logBlur(`Feltnavn i «${obj.navn}»`, e.target.value)}
-                          placeholder="feltnavn"
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <input
+                            className="struktur-celle"
+                            value={f.navn}
+                            onChange={(e) => patchFelt(oi, fi, { navn: e.target.value })}
+                            onFocus={(e) => (focusVal.current = e.target.value)}
+                            onBlur={(e) => logBlur(`Feltnavn i «${obj.navn}»`, e.target.value)}
+                            placeholder="feltnavn"
+                          />
+                          <BibliotekKnapp navn={f.navn} kind="felt" />
+                        </div>
                       </td>
                       <td>
                         <input

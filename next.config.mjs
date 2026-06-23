@@ -1,9 +1,12 @@
 /**
- * Next.js – statisk eksport for GitHub Pages.
+ * Next.js – server-app (route handlers under app/api kjører på en Node-host).
  *
- * - output: 'export'  => `next build` skriver rene statiske filer til ./out
- * - basePath/assetPrefix settes til repo-navnet i prod (PAGES_BASE_PATH),
- *   tomt lokalt. GitHub Actions setter PAGES_BASE_PATH='/<repo>'.
+ * - Tidligere `output: 'export'` (statisk GitHub Pages) er fjernet fordi
+ *   bibliotek-funksjonen trenger server-route handlers (proxy mot
+ *   sjekkliste-API + feltindeks). Deployes til en Node-host (f.eks. Azure
+ *   Container App eller Vercel), ikke GitHub Pages.
+ * - basePath/assetPrefix beholdes (tomt uten PAGES_BASE_PATH), uskadelig på
+ *   server-host.
  * - Supabase-nøkler eksponeres til nettleseren. Vi godtar både NEXT_PUBLIC_*-
  *   navnene og de korte SUPABASE_*-navnene fra .env, så det bare virker.
  */
@@ -11,7 +14,6 @@ const basePath = process.env.PAGES_BASE_PATH || '';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   basePath,
   assetPrefix: basePath || undefined,
   trailingSlash: true,
