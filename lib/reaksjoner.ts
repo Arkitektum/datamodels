@@ -26,29 +26,33 @@ export async function fetchAllReaksjoner(): Promise<Reaksjon[]> {
   return (data ?? []) as Reaksjon[];
 }
 
+/** Resultat av en reaksjons-operasjon: feilmelding fra serveren, eller null ved
+ *  suksess. Lar UI-et vise den faktiske årsaken i stedet for en gjettet tekst. */
+export type ReaksjonResultat = { feil: string | null };
+
 /** Setter (eller endrer) brukerens reaksjon på en melding. */
 export async function settReaksjon(
   meldingId: string,
   epost: string,
   navn: string | null,
   verdi: ReaksjonVerdi,
-): Promise<boolean> {
+): Promise<ReaksjonResultat> {
   const supabase = getSupabase();
-  if (!supabase) return false;
+  if (!supabase) return { feil: 'Supabase er ikke konfigurert.' };
   const { error } = await supabase
     .from('diskusjon_reaksjon')
     .upsert({ melding_id: meldingId, epost, navn, verdi }, { onConflict: 'melding_id,epost' });
   if (error) {
     console.warn('[reaksjoner] sett', error.message);
-    return false;
+    return { feil: error.message };
   }
-  return true;
+  return { feil: null };
 }
 
 /** Fjerner brukerens reaksjon på en melding. */
-export async function fjernReaksjon(meldingId: string, epost: string): Promise<boolean> {
+export async function fjernReaksjon(meldingId: string, epost: string): Promise<ReaksjonResultat> {
   const supabase = getSupabase();
-  if (!supabase) return false;
+  if (!supabase) return { feil: 'Supabase er ikke konfigurert.' };
   const { error } = await supabase
     .from('diskusjon_reaksjon')
     .delete()
@@ -56,7 +60,7 @@ export async function fjernReaksjon(meldingId: string, epost: string): Promise<b
     .eq('epost', epost);
   if (error) {
     console.warn('[reaksjoner] fjern', error.message);
-    return false;
+    return { feil: error.message };
   }
-  return true;
+  return { feil: null };
 }

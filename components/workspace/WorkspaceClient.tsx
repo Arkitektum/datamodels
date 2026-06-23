@@ -260,10 +260,10 @@ export default function WorkspaceClient() {
     const mine = reaksjoner.find(
       (r) => r.melding_id === meldingId && r.epost.toLowerCase() === epost.toLowerCase(),
     );
-    const ok = mine?.verdi === verdi
+    const { feil } = mine?.verdi === verdi
       ? await fjernReaksjon(meldingId, epost)
       : await settReaksjon(meldingId, epost, navn, verdi);
-    if (!ok) window.alert('Kunne ikke lagre reaksjonen. Du kan ikke reagere på din egen kommentar.');
+    if (feil) window.alert('Kunne ikke lagre reaksjonen: ' + feil);
     reloadReaksjoner();
   }
 
