@@ -401,6 +401,9 @@ select.res-select.res-advarsel { color: #b06f00; font-weight: 700; }
 .struktur-celle { width: 100%; border: 1px solid transparent; border-radius: 6px; padding: 5px 6px; font-family: inherit; font-size: 0.82rem; background: transparent; }
 .struktur-celle:hover { border-color: var(--border); }
 .struktur-celle:focus { outline: none; border-color: var(--brand-orange); box-shadow: var(--ring); background: #fff; }
+.struktur-gruppe { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; }
+.struktur-gruppe > span { flex-shrink: 0; font-size: 0.8rem; }
+.struktur-gruppe > .struktur-celle { max-width: 360px; border-color: var(--border); }
 .struktur-fjern { border: none; background: none; color: var(--required); cursor: pointer; font-size: 0.9rem; }
 
 /* Logg: la lange beskrivelser brytes og vises i sin helhet */

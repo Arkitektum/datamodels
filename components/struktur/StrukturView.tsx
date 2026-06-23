@@ -246,6 +246,17 @@ export default function StrukturView({
                 ×
               </button>
             </div>
+            <label className="struktur-gruppe">
+              <span className="muted">Gruppe</span>
+              <input
+                className="struktur-celle"
+                value={obj.group ?? ''}
+                onChange={(e) => patchObjekt(oi, { group: e.target.value || undefined })}
+                onFocus={(e) => (focusVal.current = e.target.value)}
+                onBlur={(e) => logBlur(`Gruppe for «${obj.navn}»`, e.target.value)}
+                placeholder="valgfri – skriv ditt eget gruppenavn, f.eks. Konvolutt"
+              />
+            </label>
             <textarea
               className="struktur-besk"
               value={obj.beskrivelse}
