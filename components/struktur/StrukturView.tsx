@@ -38,7 +38,11 @@ export default function StrukturView({
   const [objekter, setObjekter] = useState<Struktur>(defaultStruktur);
 
   useAdoptOnRevision(status, revision, () => {
-    setObjekter(Array.isArray(value) && value.length ? value : defaultStruktur);
+    // Respekter alltid den lagrede serververdien – også en tom liste. Default
+    // brukes kun når det ikke finnes en lagret verdi ennå (ikke en array), slik
+    // at en modell som er redigert (også tømt) aldri faller tilbake til den
+    // innebygde standarden.
+    setObjekter(Array.isArray(value) ? value : defaultStruktur);
   });
 
   function update(next: Struktur, detalj?: string) {
