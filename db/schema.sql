@@ -263,19 +263,18 @@ create policy "diskusjon_les" on public.diskusjon
 drop policy if exists "diskusjon_ny" on public.diskusjon;
 create policy "diskusjon_ny" on public.diskusjon
     for insert to authenticated with check (true);
--- Slette meldinger: kun EGNE (matcher e-post) eller DiBK (kan rydde/tømme tråd).
+-- Slette meldinger: ALLE innloggede. Eierskapsvernet er bevisst løsnet slik at
+-- hvem som helst kan rydde tråder – f.eks. fjerne kommentarer på felt som blir
+-- døpt om, slettet eller forsvinner ved XSD-import, uansett hvem som eier dem.
 drop policy if exists "diskusjon_slett" on public.diskusjon;
 create policy "diskusjon_slett" on public.diskusjon
-    for delete to authenticated using (
-        lower(coalesce(epost, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
-        or public.er_dibk()
-    );
--- Endre EGNE meldinger (matcher e-post).
+    for delete to authenticated using (true);
+-- Endre meldinger: ALLE innloggede (også flytting av `kontekst` ved omdøping).
+-- MERK: `status` (godkjenn/avvis forslag) vernes fortsatt av
+-- trg_diskusjon_vern_status – kun DiBK kan endre den.
 drop policy if exists "diskusjon_egen_endre" on public.diskusjon;
 create policy "diskusjon_egen_endre" on public.diskusjon
-    for update to authenticated
-    using (lower(coalesce(epost, '')) = lower(coalesce(auth.jwt() ->> 'email', '')))
-    with check (lower(coalesce(epost, '')) = lower(coalesce(auth.jwt() ->> 'email', '')));
+    for update to authenticated using (true) with check (true);
 -- Godkjenne/avvise (endre status på andres forslag): KUN DiBK.
 drop policy if exists "diskusjon_avgjor" on public.diskusjon;
 create policy "diskusjon_avgjor" on public.diskusjon

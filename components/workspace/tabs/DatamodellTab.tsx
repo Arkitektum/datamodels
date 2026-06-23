@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
 import StrukturView from '@/components/struktur/StrukturView';
 import { parseXsd, type XsdKilde } from '@/lib/xsd';
+import { ryddForeldreloeseKontekster } from '@/lib/diskusjon';
 import type { Struktur } from '@/lib/struktur';
 import { ModellView } from '../types';
 
@@ -17,6 +18,7 @@ export default function DatamodellTab({
   onComment,
   isEditing,
   onToggleEdit,
+  onDiskusjonEndret,
 }: {
   model: ModellView;
   activeCtx: string | null;
@@ -24,6 +26,7 @@ export default function DatamodellTab({
   onComment: (ctx: string) => void;
   isEditing: boolean;
   onToggleEdit: (v: boolean) => void;
+  onDiskusjonEndret?: () => void;
 }) {
   const { value: struktur, setValue } = useDokumentData<Struktur>(model.id, 'struktur', model.defaultStruktur);
   const { setValue: setXsdKilde } = useDokumentData<XsdKilde | null>(model.id, 'xsdkilde', null);
@@ -44,10 +47,13 @@ export default function DatamodellTab({
           return;
         }
         if (objekter.length && !window.confirm('Importere XSD og erstatte dagens datamodell?')) return;
+        const gammel = objekter;
         // Strukturen brukes til den grupperte visningen; den rå XSD-en lagres
         // ordrett og vises uendret i XSD-fanen (ingen verdier går tapt).
         setValue(parsed, `Importerte XSD (${parsed.length} objekttyper)`);
         setXsdKilde({ src: text, file: file.name }, `Lastet opp XSD «${file.name}»`);
+        // Rydd kommentarer på felt som forsvant da strukturen ble erstattet.
+        void ryddForeldreloeseKontekster(model.id, gammel, parsed).then(() => onDiskusjonEndret?.());
       } catch (err) {
         window.alert('Kunne ikke lese XSD: ' + (err as Error).message);
       }
@@ -80,7 +86,11 @@ export default function DatamodellTab({
             ← Ferdig redigert
           </button>
         </div>
-        <StrukturView datamodellId={model.id} defaultStruktur={model.defaultStruktur} />
+        <StrukturView
+          datamodellId={model.id}
+          defaultStruktur={model.defaultStruktur}
+          onDiskusjonEndret={onDiskusjonEndret}
+        />
       </div>
     );
   }

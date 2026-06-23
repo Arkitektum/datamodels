@@ -5,6 +5,7 @@ import { useDokumentData } from '@/lib/useDokumentData';
 import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
 import ConflictBanner from '@/components/shared/ConflictBanner';
 import { parseXsd, serializeXsd } from '@/lib/xsd';
+import { deleteTraad, flyttTraad, ryddForeldreloeseKontekster } from '@/lib/diskusjon';
 import type { Struktur, StrukturObjekt, StrukturFelt } from '@/lib/struktur';
 
 // Standard XSD-kardinaliteter. Ikke-standard verdier (f.eks. fra import) legges
@@ -26,9 +27,13 @@ const TYPE_FORSLAG = [
 export default function StrukturView({
   datamodellId,
   defaultStruktur = [],
+  onDiskusjonEndret,
 }: {
   datamodellId: string;
   defaultStruktur?: Struktur;
+  /** Kalles etter at delte diskusjonstråder er fjernet, så badges/innboks
+   *  oppdateres (parenten henter diskusjonen på nytt). */
+  onDiskusjonEndret?: () => void;
 }) {
   const { value, setValue, status, revision, stale, reload } = useDokumentData<Struktur>(
     datamodellId,
@@ -67,11 +72,54 @@ export default function StrukturView({
       setValue(objekter, `${label}: «${kort(focusVal.current)}» → «${kort(ny)}»`);
   };
 
+  // Fjern de delte diskusjonstrådene for felt som ikke lenger finnes. Konteksten
+  // er «ObjektNavn.feltNavn» (samme som DatamodellTab bruker når man kommenterer).
+  // 👍/👎-reaksjoner ryddes automatisk via FK on delete cascade. Etterpå ber vi
+  // parenten laste diskusjonen på nytt så badges/innboks stemmer.
+  const fjernKommentarer = async (kontekster: string[]) => {
+    const reelle = kontekster.filter(Boolean);
+    if (!reelle.length) return;
+    await Promise.all(reelle.map((k) => deleteTraad(datamodellId, k)));
+    onDiskusjonEndret?.();
+  };
+
+  // Flytt kommentarene med når et felt/objekt døpes om, så de ikke blir liggende
+  // foreldreløst på det gamle navnet. `par` = [fraKontekst, tilKontekst].
+  const flyttKommentarer = async (par: [string, string][]) => {
+    const reelle = par.filter(([fra, til]) => fra && til && fra !== til);
+    if (!reelle.length) return;
+    await Promise.all(reelle.map(([fra, til]) => flyttTraad(datamodellId, fra, til)));
+    onDiskusjonEndret?.();
+  };
+
+  // Blur på objektnavn: logg «fra → til» og flytt alle feltenes tråder til det
+  // nye objektnavn-prefikset (kontekst «ObjektNavn.feltNavn»).
+  const onBlurObjektnavn = (oi: number, ny: string) => {
+    const gammel = focusVal.current;
+    logBlur('Objektnavn', ny);
+    if (gammel && ny && gammel !== ny)
+      void flyttKommentarer(
+        objekter[oi].felt
+          .filter((f) => f.navn)
+          .map((f) => [`${gammel}.${f.navn}`, `${ny}.${f.navn}`]),
+      );
+  };
+  // Blur på feltnavn: logg «fra → til» og flytt feltets tråd til det nye navnet.
+  const onBlurFeltnavn = (oi: number, ny: string) => {
+    const gammel = focusVal.current;
+    const objNavn = objekter[oi].navn;
+    logBlur(`Feltnavn i «${objNavn}»`, ny);
+    if (gammel && ny && gammel !== ny)
+      void flyttKommentarer([[`${objNavn}.${gammel}`, `${objNavn}.${ny}`]]);
+  };
+
   const addObjekt = () =>
     update([...objekter, { navn: 'Nytt objekt', beskrivelse: '', felt: [] }], 'La til objekt');
   const deleteObjekt = (oi: number) => {
     if (!confirm('Slette dette objektet?')) return;
-    update(objekter.filter((_, i) => i !== oi), `Slettet objekt «${objekter[oi].navn}»`);
+    const obj = objekter[oi];
+    update(objekter.filter((_, i) => i !== oi), `Slettet objekt «${obj.navn}»`);
+    void fjernKommentarer(obj.felt.filter((f) => f.navn).map((f) => `${obj.navn}.${f.navn}`));
   };
   const addFelt = (oi: number) =>
     update(
@@ -80,11 +128,15 @@ export default function StrukturView({
       ),
       `La til felt i «${objekter[oi].navn}»`,
     );
-  const deleteFelt = (oi: number, fi: number) =>
+  const deleteFelt = (oi: number, fi: number) => {
+    const obj = objekter[oi];
+    const felt = obj.felt[fi];
     update(
       objekter.map((o, i) => (i === oi ? { ...o, felt: o.felt.filter((_, j) => j !== fi) } : o)),
-      `Slettet felt i «${objekter[oi].navn}»`,
+      `Slettet felt i «${obj.navn}»`,
     );
+    if (felt.navn) void fjernKommentarer([`${obj.navn}.${felt.navn}`]);
+  };
 
   function onImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -93,7 +145,12 @@ export default function StrukturView({
     reader.onload = (ev) => {
       try {
         const parsed = parseXsd(String(ev.target?.result));
+        const gammel = objekter;
         update(parsed, `Importerte XSD (${parsed.length} objekter)`);
+        // Rydd kommentarer på felt som forsvant da strukturen ble erstattet.
+        void ryddForeldreloeseKontekster(datamodellId, gammel, parsed).then(() =>
+          onDiskusjonEndret?.(),
+        );
       } catch (err) {
         alert('Kunne ikke lese XSD: ' + (err as Error).message);
       }
@@ -182,7 +239,7 @@ export default function StrukturView({
                 value={obj.navn}
                 onChange={(e) => patchObjekt(oi, { navn: e.target.value })}
                 onFocus={(e) => (focusVal.current = e.target.value)}
-                onBlur={(e) => logBlur('Objektnavn', e.target.value)}
+                onBlur={(e) => onBlurObjektnavn(oi, e.target.value)}
                 placeholder="Objektnavn"
               />
               <button type="button" className="dm-del" onClick={() => deleteObjekt(oi)} title="Slett objekt">
@@ -218,7 +275,7 @@ export default function StrukturView({
                           value={f.navn}
                           onChange={(e) => patchFelt(oi, fi, { navn: e.target.value })}
                           onFocus={(e) => (focusVal.current = e.target.value)}
-                          onBlur={(e) => logBlur(`Feltnavn i «${obj.navn}»`, e.target.value)}
+                          onBlur={(e) => onBlurFeltnavn(oi, e.target.value)}
                           placeholder="feltnavn"
                         />
                       </td>

@@ -2,6 +2,7 @@
 // Supabase-tabellen `diskusjon`. Erstatter prototypens localStorage-tråder.
 import { getSupabase } from './supabase';
 import type { Rolle } from './roller';
+import type { Struktur } from './struktur';
 
 export type MeldingType = 'comment' | 'proposal';
 export type ForslagStatus = 'open' | 'approved' | 'rejected';
@@ -103,6 +104,50 @@ export async function setForslagStatus(id: string, status: ForslagStatus): Promi
     return false;
   }
   return (data?.length ?? 0) > 0;
+}
+
+/** Flytter en tråd til en ny kontekst (f.eks. når et felt/objekt døpes om, slik
+ *  at kommentarene følger med i stedet for å bli foreldreløse). RLS gjør at kun
+ *  EGNE meldinger flyttes (DiBK kan alle) – samme begrensning som deleteTraad. */
+export async function flyttTraad(
+  datamodellId: string,
+  fra: string,
+  til: string,
+): Promise<boolean> {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+  if (fra === til) return true;
+  const { error } = await supabase
+    .from('diskusjon')
+    .update({ kontekst: til })
+    .eq('datamodell_id', datamodellId)
+    .eq('kontekst', fra);
+  if (error) {
+    console.warn('[diskusjon] flyttTraad', error.message);
+    return false;
+  }
+  return true;
+}
+
+/** Alle feltkontekster («ObjektNavn.feltNavn») i en struktur – samme nøkkel som
+ *  diskusjonstrådene bruker. Felt uten navn hoppes over. */
+export function strukturKontekster(struktur: Struktur): string[] {
+  return struktur.flatMap((o) =>
+    (o.felt ?? []).filter((f) => f.navn).map((f) => `${o.navn}.${f.navn}`),
+  );
+}
+
+/** Sletter tråder for felt som forsvant da strukturen ble erstattet (XSD-import).
+ *  Tråder på felt som fortsatt finnes, og modell-nivå-tråder (kontekst = null),
+ *  beholdes. RLS gjør at kun egne meldinger slettes (DiBK kan alle). */
+export async function ryddForeldreloeseKontekster(
+  datamodellId: string,
+  gammel: Struktur,
+  ny: Struktur,
+): Promise<void> {
+  const beholdt = new Set(strukturKontekster(ny));
+  const fjernet = [...new Set(strukturKontekster(gammel))].filter((k) => !beholdt.has(k));
+  await Promise.all(fjernet.map((k) => deleteTraad(datamodellId, k)));
 }
 
 /** Tømmer én tråd (modell + kontekst). */

@@ -411,7 +411,7 @@ export default function WorkspaceClient() {
             )}
 
             <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--neutral-border)', marginBottom: 18, flexWrap: 'wrap' }}>
-              {SUBTABS.map((s) => {
+              {SUBTABS.filter((s) => s.id !== 'historikk' || isAdmin).map((s) => {
                 const active = activeSub === s.id;
                 return (
                   <button
@@ -445,6 +445,7 @@ export default function WorkspaceClient() {
                 onComment={onComment}
                 isEditing={editStruktur}
                 onToggleEdit={setEditStruktur}
+                onDiskusjonEndret={reloadDiskusjon}
               />
             )}
             {activeSub === 'dokumenter' && <DokumenterTab key={model.id} model={model} />}
@@ -452,7 +453,7 @@ export default function WorkspaceClient() {
             {activeSub === 'eksempel' && <EksempelTab model={model} />}
             {activeSub === 'validerxml' && <ValiderXmlTab key={model.id} model={model} />}
             {activeSub === 'diskusjon' && <DiskusjonTab messages={modelMessages} onOpen={openThread} />}
-            {activeSub === 'historikk' && <HistorikkTab key={model.id} model={model} />}
+            {activeSub === 'historikk' && isAdmin && <HistorikkTab key={model.id} model={model} />}
             {activeSub === 'validering' &&
               (model.builtin ? (
                 <ValideringsreglerView key={model.id} datamodellId={model.id} />
