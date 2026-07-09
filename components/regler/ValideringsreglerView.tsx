@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useDokumentData } from '@/lib/useDokumentData';
 import { useAdoptOnRevision } from '@/lib/useAdoptOnRevision';
 import ConflictBanner from '@/components/shared/ConflictBanner';
@@ -8,6 +8,7 @@ import EditableCell from './EditableCell';
 import {
   REGEL_GRUPPER_DEFAULT,
   REGEL_STATUSER,
+  REGEL_STATUS_DEFAULT,
   REGEL_ROOT,
 } from '@/data/hoeringOgOffentligEttersynV2.rules';
 import {
@@ -33,6 +34,56 @@ const FELT_LABEL: Record<string, string> = {
   k: 'Kommentar',
 };
 
+// --- Synk-hjelpere: oppdag om en modell er «urørt» siden forrige standard ble
+// tatt inn, og hva som skiller den fra en ny standard. ---
+const DIFF_FELT: (keyof RegelRule)[] = ['t', 'r', 'b', 'f', 'k'];
+function flatByP(grupper: RegelGruppe[]): Record<string, RegelRule> {
+  const m: Record<string, RegelRule> = {};
+  grupper.forEach((g) => g.rules.forEach((r) => { m[r.p] = r; }));
+  return m;
+}
+/**
+ * Kanonisk streng av regler + statuser for likhets-hashing. Bruker posisjonelle
+ * arrays (ikke objektnøkler) + sorterte status-nøkler, fordi Supabase lagrer
+ * JSONB og IKKE bevarer nøkkelrekkefølge — en tur/retur DB ville ellers gitt
+ * ulik hash og fått en urørt modell til å se «endret» ut.
+ */
+function stabilStreng(grupper: RegelGruppe[], statusMap: Record<string, string>): string {
+  const g = grupper.map((gr) => [
+    gr.g,
+    gr.std ? 1 : 0,
+    gr.rules.map((r) => [r.p, r.sjekkpunkt || '', r.t || '', r.r || '', r.b || '', r.f || '', r.k || '']),
+  ]);
+  const s = Object.keys(statusMap)
+    .filter((k) => statusMap[k])
+    .sort()
+    .map((k) => [k, statusMap[k]]);
+  return JSON.stringify(g) +'' + JSON.stringify(s);
+}
+function hashStr(str: string): string {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(h, 33) ^ str.charCodeAt(i)) >>> 0;
+  return h.toString(16);
+}
+const regelHash = (g: RegelGruppe[], s: Record<string, string>) => hashStr(stabilStreng(g, s));
+
+interface SynkDiff {
+  kunIApp: string[]; // regler i appen som ikke finnes i Confluence (mulige egendefinerte)
+  nyeFraConfluence: string[];
+  endret: string[];
+}
+function regelDiff(stored: RegelGruppe[], nye: RegelGruppe[]): SynkDiff {
+  const a = flatByP(stored);
+  const b = flatByP(nye);
+  return {
+    kunIApp: Object.keys(a).filter((p) => !(p in b)),
+    nyeFraConfluence: Object.keys(b).filter((p) => !(p in a)),
+    endret: Object.keys(a).filter(
+      (p) => p in b && DIFF_FELT.some((f) => (a[p][f] || '') !== (b[p][f] || '')),
+    ),
+  };
+}
+
 export default function ValideringsreglerView({
   datamodellId,
   defaultGrupper,
@@ -46,15 +97,27 @@ export default function ValideringsreglerView({
 }) {
   const base = defaultGrupper ?? BUILTIN_GRUPPER;
   const stdByGroup = useMemo(() => stdByGroupFrom(base), [base]);
+  // Standardstatuser (fargekoder fra Confluence) gjelder kun den innebygde
+  // HOFFE-modellen. Egendefinerte modeller (defaultGrupper angitt) starter blankt.
+  const statusBase = useMemo<Record<string, string>>(
+    () => (defaultGrupper ? {} : REGEL_STATUS_DEFAULT),
+    [defaultGrupper],
+  );
 
   const rules = useDokumentData<RegelGruppe[]>(datamodellId, 'regeldata', base);
-  const status = useDokumentData<Record<string, string>>(datamodellId, 'regelstatus', {});
+  const status = useDokumentData<Record<string, string>>(datamodellId, 'regelstatus', statusBase);
+  // Hash av standarden som sist ble tatt inn på modellen (tom = aldri synket).
+  // Brukes til å skille «urørt siden synk» fra «endret av bruker».
+  const kildehash = useDokumentData<string>(datamodellId, 'regeldefaults_kildehash', '');
+  // Hvilken ny-standard-hash brukeren har valgt å ignorere («Behold appens regler»).
+  const ignorert = useDokumentData<string>(datamodellId, 'regeldefaults_ignorert', '');
 
   const [grupper, setGrupper] = useState<RegelGruppe[]>(base);
   const grupperRef = useRef<RegelGruppe[]>(grupper);
   const [resetKey, setResetKey] = useState(0);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState('');
+  const [synkBanner, setSynkBanner] = useState<SynkDiff | null>(null);
 
   useAdoptOnRevision(rules.status, rules.revision, () => {
     const next = rules.value && rules.value.length ? rules.value : base;
@@ -62,6 +125,56 @@ export default function ValideringsreglerView({
     setGrupper(next);
     setResetKey((k) => k + 1);
   });
+
+  const rulesSet = rules.setValue;
+  const statusSet = status.setValue;
+  const hashSet = kildehash.setValue;
+  const hashNy = useMemo(() => regelHash(base, statusBase), [base, statusBase]);
+
+  /** Tar inn kodens standardregler + farger, og markerer modellen som synket. */
+  function taInnStandard(detalj = 'Oppdaterte reglene og fargene fra Confluence') {
+    grupperRef.current = base;
+    setGrupper(base);
+    setResetKey((k) => k + 1);
+    rulesSet(base, detalj);
+    statusSet(statusBase, detalj);
+    hashSet(hashNy);
+    setSynkBanner(null);
+  }
+
+  // Versjonsstyrt synk (kun den innebygde HOFFE-modellen), én gang per montering:
+  //  - er modellen URØRT siden forrige synk → ta inn ny standard automatisk;
+  //  - er den ENDRET (redigert / nye / fjernede regler) → ikke overskriv, men vis
+  //    et banner der brukeren velger. Confluence-endringer forsvinner altså ikke
+  //    stille når noen har egendefinerte regler i appen.
+  const migrertRef = useRef(false);
+  useEffect(() => {
+    if (defaultGrupper) return; // kun innebygd modell
+    if (migrertRef.current) return;
+    if (rules.status !== 'idle' || status.status !== 'idle' || kildehash.status !== 'idle' || ignorert.status !== 'idle') return;
+    migrertRef.current = true;
+
+    // Allerede synket til dagens standard → ingen ny Confluence-versjon å tilby.
+    // (Lokale endringer er da brukerens egne; ikke vis banner for dem.)
+    if (kildehash.value === hashNy) return;
+
+    const stored = rules.value && rules.value.length ? rules.value : base;
+    const storedHash = regelHash(stored, status.value || {});
+    if (storedHash === hashNy) {
+      // Modellen er allerede lik ny standard → bare stemple kilden.
+      hashSet(hashNy);
+      return;
+    }
+    if (storedHash === kildehash.value) {
+      // Urørt siden forrige synk, men Confluence har endret seg → ta inn stille.
+      taInnStandard('Synket standardregler og farger fra Confluence');
+      return;
+    }
+    if (ignorert.value === hashNy) return; // brukeren har valgt å beholde egne
+    // Modellen er endret → spør før noe overskrives.
+    setSynkBanner(regelDiff(stored, base));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultGrupper, rules.status, status.status, kildehash.status, ignorert.status, hashNy]);
 
   const statusMap = status.value || {};
 
@@ -183,12 +296,38 @@ export default function ValideringsreglerView({
   }
 
   function resetAll() {
-    if (!confirm('Tilbakestille alle regler og statuser til standard? Dette sletter dine endringer.')) return;
+    // Er modellen allerede lik standarden? Da er det ingenting å tilbakestille.
+    const uendret = regelHash(grupperRef.current, statusMap) === hashNy;
+    if (uendret) {
+      alert('Ingen lokale endringer å tilbakestille — modellen er allerede lik Confluence-standarden.');
+      return;
+    }
+    // Vis hva som forkastes, og la «Avbryt» bety «behold».
+    const d = regelDiff(grupperRef.current, base);
+    const deler = [
+      d.kunIApp.length ? `${d.kunIApp.length} egendefinerte regler (finnes ikke i Confluence)` : '',
+      d.endret.length ? `${d.endret.length} endrede regler` : '',
+      d.nyeFraConfluence.length ? `${d.nyeFraConfluence.length} regler du har fjernet blir lagt tilbake` : '',
+    ].filter(Boolean).join('\n• ');
+    const melding =
+      'Tilbakestille til Confluence-standarden og forkaste dine endringer?\n\n' +
+      (deler ? '• ' + deler + '\n\n' : '') +
+      'Trykk Avbryt for å beholde det du har.';
+    if (!confirm(melding)) return;
     setGrupper(base);
     persist(base, 'Tilbakestilte regler til standard');
-    status.setValue({}, 'Tilbakestilte statuser');
+    status.setValue(statusBase, 'Tilbakestilte statuser');
+    hashSet(hashNy);
+    ignorert.setValue('');
+    setSynkBanner(null);
     setCollapsed({});
     setResetKey((k) => k + 1);
+  }
+
+  /** «Behold appens regler» — ikke overskriv, men slutt å spørre for denne nye standarden. */
+  function beholdEgne() {
+    ignorert.setValue(hashNy);
+    setSynkBanner(null);
   }
 
   const term = filter.trim().toLowerCase();
@@ -209,6 +348,36 @@ export default function ValideringsreglerView({
           ))}
         </div>
       </div>
+
+      {synkBanner && (
+        <div className="synk-banner" role="alert">
+          <div className="synk-banner-tekst">
+            <strong>Ny versjon av valideringsreglene fra Confluence.</strong>{' '}
+            Denne modellen er endret i appen, så den ble ikke oppdatert automatisk.
+            Confluence-versjonen vil{' '}
+            {synkBanner.nyeFraConfluence.length > 0 && (
+              <>legge til {synkBanner.nyeFraConfluence.length} regler, </>
+            )}
+            {synkBanner.endret.length > 0 && (
+              <>endre {synkBanner.endret.length} regler, </>
+            )}
+            og <strong>fjerne {synkBanner.kunIApp.length} regler som finnes i appen men ikke i Confluence</strong>
+            {synkBanner.kunIApp.length > 0 && (
+              <> ({synkBanner.kunIApp.slice(0, 8).join(', ')}
+              {synkBanner.kunIApp.length > 8 ? ' …' : ''})</>
+            )}
+            .
+          </div>
+          <div className="synk-banner-knapper">
+            <button type="button" onClick={() => taInnStandard()}>
+              Oppdater fra Confluence
+            </button>
+            <button type="button" onClick={beholdEgne}>
+              Behold appens regler
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="regel-controls">
         <button type="button" onClick={() => setAll(true)}>▾ Åpne alle</button>

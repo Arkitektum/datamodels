@@ -240,6 +240,15 @@ h2 { font-size: 1.3rem; margin: 1.5rem 0 0.75rem; color: #243042; letter-spacing
 .st-feilet    { background: #f6c6c6; }
 .st-nye       { background: #e3d4f7; }
 
+.synk-banner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 12px 0; padding: 12px 14px;
+  background: #fff8e1; border: 1px solid #f0c36d; border-radius: 6px; font-size: 0.85rem;
+}
+.synk-banner-tekst { flex: 1 1 320px; }
+.synk-banner-knapper { display: flex; gap: 8px; flex-shrink: 0; }
+.synk-banner-knapper button { white-space: nowrap; }
+
 .regeltable-scroll { overflow-x: auto; }
 table.regeltable {
   width: 100%; border-collapse: collapse; background: var(--card); font-size: 0.8rem;
