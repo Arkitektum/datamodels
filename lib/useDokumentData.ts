@@ -19,6 +19,9 @@ export interface DokumentDataResult<T> {
   /** True når en annen bruker har lagret nyere endringer mens DU har
    *  ulagrede lokale endringer (serververdien er ikke hentet inn ennå). */
   stale: boolean;
+  /** Henter gjeldende serververdi UTEN å adoptere den (til diff-visning i
+   *  konfliktbanneret — «hva er forskjellig fra min ulagrede versjon?»). */
+  hentServerVerdi: () => Promise<unknown>;
 }
 
 /**
@@ -260,6 +263,23 @@ export function useDokumentData<T>(
     };
   }, [flushNow]);
 
+  // Ren lesing av serververdien (uten å røre lokal state) — for diff-visning.
+  const hentServerVerdi = useCallback(async (): Promise<unknown> => {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    const { data, error } = await supabase
+      .from(SUPABASE_TABLE)
+      .select('innhold')
+      .eq('datamodell_id', datamodellId)
+      .eq('type', type)
+      .maybeSingle();
+    if (error) {
+      console.warn('[useDokumentData] hentServerVerdi', error.message);
+      return null;
+    }
+    return data?.innhold ?? null;
+  }, [datamodellId, type]);
+
   // reload nullstiller stale/conflict og henter ferskeste serververdi.
   const reload = useCallback(() => {
     if (timer.current) {
@@ -273,5 +293,5 @@ export function useDokumentData<T>(
     load();
   }, [load]);
 
-  return { value, setValue, status, endretAv, endretTid, reload, revision, stale };
+  return { value, setValue, status, endretAv, endretTid, reload, revision, stale, hentServerVerdi };
 }

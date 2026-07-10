@@ -35,7 +35,7 @@ export default function StrukturView({
    *  oppdateres (parenten henter diskusjonen på nytt). */
   onDiskusjonEndret?: () => void;
 }) {
-  const { value, setValue, status, revision, stale, reload } = useDokumentData<Struktur>(
+  const { value, setValue, status, revision, stale, reload, hentServerVerdi } = useDokumentData<Struktur>(
     datamodellId,
     'struktur',
     defaultStruktur,
@@ -229,7 +229,7 @@ export default function StrukturView({
         </div>
       </div>
 
-      <ConflictBanner visible={status === 'conflict' || stale} onReload={reload} style={{ marginTop: 12 }} />
+      <ConflictBanner visible={status === 'conflict' || stale} onReload={reload} style={{ marginTop: 12 }} lokal={objekter} hentServer={hentServerVerdi} />
 
       {objekter.length === 0 ? (
         <div className="card" style={{ marginTop: 16 }}>

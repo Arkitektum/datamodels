@@ -63,7 +63,7 @@ function Tag({ children }: { children: React.ReactNode }) {
 }
 
 export default function SidebarReferanse({ model }: { model: ModellView }) {
-  const { value, setValue, status, revision, stale, reload } = useDokumentData<VedleggType[]>(
+  const { value, setValue, status, revision, stale, reload, hentServerVerdi } = useDokumentData<VedleggType[]>(
     model.id,
     'vedlegg',
     model.vedleggDefault,
@@ -169,6 +169,8 @@ export default function SidebarReferanse({ model }: { model: ModellView }) {
             visible={status === 'conflict' || stale}
             onReload={reload}
             style={{ marginTop: 6, fontSize: '0.72rem' }}
+            lokal={vedlegg}
+            hentServer={hentServerVerdi}
           />
         </div>
       </Seksjon>

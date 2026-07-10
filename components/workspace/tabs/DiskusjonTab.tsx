@@ -19,9 +19,12 @@ interface Traad {
 export default function DiskusjonTab({
   messages,
   onOpen,
+  uleste,
 }: {
   messages: Melding[];
   onOpen: (ctx: string | null) => void;
+  /** Antall uleste meldinger i en tråd for innlogget bruker. */
+  uleste?: (kontekst: string | null) => number;
 }) {
   // Grupper alle meldinger (kommentarer + forslag) per kontekst.
   const map = new Map<string, Melding[]>();
@@ -78,6 +81,9 @@ export default function DiskusjonTab({
                 </span>
               ) : (
                 <span style={{ fontSize: '0.82rem', color: 'var(--accent-text)', fontWeight: 600 }}>Hele modellen</span>
+              )}
+              {(uleste?.(t.kontekst) ?? 0) > 0 && (
+                <span className="pill pill--info">{uleste!(t.kontekst)} nye</span>
               )}
               {t.aapneForslag > 0 && (
                 <span className="pill pill--warning">

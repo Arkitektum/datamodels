@@ -74,6 +74,7 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
     revision: mapperRevision,
     stale: mapperStale,
     reload: mapperReload,
+    hentServerVerdi: mapperHentServer,
   } = useDokumentData<string[]>(model.id, 'dok_mapper', []);
   const [mapper, setMapperState] = useState<string[]>([]);
   // Fletter inn evt. mapper brukeren rakk å lage lokalt, så ingen går tapt.
@@ -381,6 +382,8 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
         visible={mapperStatus === 'conflict' || mapperStale}
         onReload={mapperReload}
         style={{ marginBottom: 14 }}
+        lokal={lagredeMapper}
+        hentServer={mapperHentServer}
       />
 
       <label

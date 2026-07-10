@@ -11,6 +11,7 @@ export default function Sidebar({
   onSearch,
   onSelect,
   openCount,
+  ulesteCount,
   onOpenCreate,
 }: {
   models: ModellView[];
@@ -20,6 +21,8 @@ export default function Sidebar({
   onSearch: (v: string) => void;
   onSelect: (id: string) => void;
   openCount: (id: string) => number;
+  /** Uleste diskusjonsmeldinger for innlogget bruker per modell. */
+  ulesteCount: (id: string) => number;
   onOpenCreate: () => void;
 }) {
   const q = search.trim().toLowerCase();
@@ -70,6 +73,7 @@ export default function Sidebar({
             {grp.items.map((m) => {
               const active = m.id === activeId;
               const open = openCount(m.id);
+              const uleste = ulesteCount(m.id);
               return (
                 <button
                   key={m.id}
@@ -123,8 +127,26 @@ export default function Sidebar({
                       {m.short}
                     </span>
                   </span>
+                  {uleste > 0 && (
+                    <span
+                      title={`${uleste} uleste meldinger`}
+                      style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        background: 'var(--accent-base)',
+                        color: 'var(--brand1-text)',
+                        borderRadius: 999,
+                        padding: '1px 7px',
+                        flexShrink: 0,
+                        marginTop: 2,
+                      }}
+                    >
+                      {uleste}
+                    </span>
+                  )}
                   {open > 0 && (
                     <span
+                      title={`${open} åpne forslag`}
                       style={{
                         fontSize: '0.66rem',
                         fontWeight: 700,

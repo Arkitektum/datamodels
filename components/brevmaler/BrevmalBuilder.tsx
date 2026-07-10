@@ -7,7 +7,7 @@ import ConflictBanner from '@/components/shared/ConflictBanner';
 import { type Brev, type BlokkType, type BrevmalDok, uid } from '@/lib/brevmalDok';
 
 export default function BrevmalBuilder({ datamodellId }: { datamodellId: string }) {
-  const { value, setValue, status, revision, stale, reload } = useDokumentData<BrevmalDok>(
+  const { value, setValue, status, revision, stale, reload, hentServerVerdi } = useDokumentData<BrevmalDok>(
     datamodellId,
     'brevmaler',
     { brev: [] },
@@ -93,7 +93,7 @@ export default function BrevmalBuilder({ datamodellId }: { datamodellId: string 
         </div>
       </div>
 
-      <ConflictBanner visible={status === 'conflict' || stale} onReload={reload} style={{ marginTop: 12 }} />
+      <ConflictBanner visible={status === 'conflict' || stale} onReload={reload} style={{ marginTop: 12 }} lokal={value} hentServer={hentServerVerdi} />
 
       {brev.length === 0 ? (
         <div className="card" style={{ marginTop: 16 }}>

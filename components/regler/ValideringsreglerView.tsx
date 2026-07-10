@@ -410,6 +410,8 @@ export default function ValideringsreglerView({
           status.reload();
         }}
         style={{ marginBottom: 12 }}
+        lokal={rules.value}
+        hentServer={rules.hentServerVerdi}
       />
 
       <div className="regeltable-scroll">

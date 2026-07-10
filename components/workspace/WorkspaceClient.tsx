@@ -34,6 +34,24 @@ import {
   type Reaksjon,
   type ReaksjonVerdi,
 } from '@/lib/reaksjoner';
+import {
+  fetchMineVarsler,
+  markerVarselLest,
+  markerAlleVarslerLest,
+  antallUlesteVarsler,
+  type Varsel,
+} from '@/lib/varsler';
+import {
+  fetchMineLest,
+  settTraadLest,
+  lestKart,
+  ulesteITraad,
+  ulesteIModell,
+  type TraadLest,
+} from '@/lib/sistLest';
+import { listBrukerRoller, type BrukerRolle } from '@/lib/admin';
+import { usePresence } from '@/lib/presence';
+import PresenceAvatars from './PresenceAvatars';
 import ValideringsreglerView from '@/components/regler/ValideringsreglerView';
 import AdminView from '@/components/admin/AdminView';
 import Header, { type HeaderView } from './Header';
@@ -57,6 +75,9 @@ export default function WorkspaceClient() {
   const [customLoaded, setCustomLoaded] = useState(false);
   const [diskusjon, setDiskusjon] = useState<Melding[]>([]);
   const [reaksjoner, setReaksjoner] = useState<Reaksjon[]>([]);
+  const [varsler, setVarsler] = useState<Varsel[]>([]);
+  const [lest, setLest] = useState<TraadLest[]>([]);
+  const [brukerRoller, setBrukerRoller] = useState<BrukerRolle[]>([]);
   const [activeId, setActiveId] = useState<string>(DATAMODELLER[0].id);
   const [activeSub, setActiveSub] = useState<string>('datamodell');
   const [threadCtx, setThreadCtx] = useState<string | null>(null);
@@ -78,12 +99,29 @@ export default function WorkspaceClient() {
   }, []);
   const reloadDiskusjon = useCallback(async () => setDiskusjon(await fetchAllDiskusjon()), []);
   const reloadReaksjoner = useCallback(async () => setReaksjoner(await fetchAllReaksjoner()), []);
+  const reloadVarsler = useCallback(async () => setVarsler(await fetchMineVarsler()), []);
+  const reloadLest = useCallback(async () => setLest(await fetchMineLest()), []);
 
   useEffect(() => {
     reloadCustom();
     reloadDiskusjon();
     reloadReaksjoner();
+    // Brukerlisten trengs for @-omtaler i composeren (alle innloggede kan lese).
+    listBrukerRoller().then(setBrukerRoller);
   }, [reloadCustom, reloadDiskusjon, reloadReaksjoner]);
+
+  // Personlige data (varsler + lest-markeringer) hentes når vi vet hvem som er
+  // innlogget, og varsler holdes live via sanntid på egne rader.
+  useEffect(() => {
+    if (!epost) return;
+    reloadVarsler();
+    reloadLest();
+    const avVarsler = subscribeTable('varsel', {
+      filter: 'mottaker_epost=eq.' + epost.toLowerCase(),
+      onChange: () => reloadVarsler(),
+    });
+    return avVarsler;
+  }, [epost, reloadVarsler, reloadLest]);
 
   // Sanntid: oppdater diskusjon, reaksjoner og modelliste live når andre skriver.
   useEffect(() => {
@@ -327,6 +365,31 @@ export default function WorkspaceClient() {
   const panelMessages = traadFor(diskusjon, activeId, threadCtx);
   const modelMessages = diskusjon.filter((m) => m.datamodell_id === activeId);
 
+  // Hvem ser på samme modell akkurat nå (Realtime Presence).
+  const tilstede = usePresence(activeId, epost, navn);
+
+  // Uleste diskusjonsmeldinger (badges) + varsler.
+  const lestOppslag = useMemo(() => lestKart(lest), [lest]);
+  const ulesteVarsler = antallUlesteVarsler(varsler);
+
+  // Brukere som kan @-omtales (visningsnavn kreves — matcher varsel-triggeren).
+  const omtaleBrukere = useMemo(
+    () =>
+      brukerRoller
+        .filter((b) => b.navn && b.navn.trim().length > 0)
+        .map((b) => ({ epost: b.epost, navn: b.navn as string })),
+    [brukerRoller],
+  );
+
+  async function markerLest(id: number) {
+    await markerVarselLest(id);
+    reloadVarsler();
+  }
+  async function markerAlleLest() {
+    await markerAlleVarslerLest();
+    reloadVarsler();
+  }
+
   // Globalt søk + topp-visninger (Innboks/Admin) tar hovedområdet i full bredde
   // og skjuler diskusjonspanelet.
   const searchActive = search.trim().length > 0;
@@ -338,9 +401,19 @@ export default function WorkspaceClient() {
   }, [models]);
   const apneForslag = diskusjon.filter((m) => m.type === 'proposal' && m.status === 'open').length;
 
+  // Tråden i panelet regnes som lest når den faktisk vises (modellvisning uten
+  // aktivt søk). Skrives kun når det finnes uleste, så vi ikke spammer upserts.
+  useEffect(() => {
+    if (wide || !epost) return;
+    if (ulesteITraad(diskusjon, lestOppslag, epost, activeId, threadCtx) === 0) return;
+    settTraadLest(epost, activeId, threadCtx).then((ok) => {
+      if (ok) reloadLest();
+    });
+  }, [wide, epost, diskusjon, lestOppslag, activeId, threadCtx, reloadLest]);
+
   return (
     <>
-      <Header view={view} onView={setView} innboksCount={apneForslag} />
+      <Header view={view} onView={setView} innboksCount={apneForslag + ulesteVarsler} />
       <div style={{ minHeight: 'calc(100vh - 60px)', background: 'var(--bg-2)' }}>
         <div className="ws-layout">
           <Sidebar
@@ -351,6 +424,7 @@ export default function WorkspaceClient() {
             onSearch={setSearch}
             onSelect={selectModel}
             openCount={(id) => aapneForslagCount(diskusjon, id)}
+            ulesteCount={(id) => (epost ? ulesteIModell(diskusjon, lestOppslag, epost, id) : 0)}
             onOpenCreate={() => setShowCreate(true)}
           />
 
@@ -360,10 +434,13 @@ export default function WorkspaceClient() {
             ) : view === 'innboks' ? (
               <InnboksView
                 messages={diskusjon}
+                varsler={varsler}
                 modellNavn={modellNavn}
                 canDecide={isDibk}
                 onGoTo={goToTraad}
                 onDecide={decide}
+                onMarkerLest={markerLest}
+                onMarkerAlleLest={markerAlleLest}
               />
             ) : view === 'admin' ? (
               isAdmin ? (
@@ -393,11 +470,14 @@ export default function WorkspaceClient() {
                 <option value="planlagt">Planlagt</option>
               </select>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--fg-2)' }}>{model.short}</span>
-              {model.slettbar && (
-                <button className="btn btn--tertiary btn--sm" onClick={onDeleteModel} style={{ marginLeft: 'auto' }}>
-                  Slett modell
-                </button>
-              )}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <PresenceAvatars brukere={tilstede} />
+                {model.slettbar && (
+                  <button className="btn btn--tertiary btn--sm" onClick={onDeleteModel}>
+                    Slett modell
+                  </button>
+                )}
+              </div>
             </div>
             <h1 className="h4" style={{ marginBottom: 6 }}>
               {model.navn}
@@ -454,7 +534,15 @@ export default function WorkspaceClient() {
             {activeSub === 'xsd' && <XsdTab key={model.id} model={model} />}
             {activeSub === 'eksempel' && <EksempelTab model={model} />}
             {activeSub === 'validerxml' && <ValiderXmlTab key={model.id} model={model} />}
-            {activeSub === 'diskusjon' && <DiskusjonTab messages={modelMessages} onOpen={openThread} />}
+            {activeSub === 'diskusjon' && (
+              <DiskusjonTab
+                messages={modelMessages}
+                onOpen={openThread}
+                uleste={(ctx) =>
+                  epost ? ulesteITraad(diskusjon, lestOppslag, epost, activeId, ctx) : 0
+                }
+              />
+            )}
             {activeSub === 'historikk' && isAdmin && <HistorikkTab key={model.id} model={model} />}
             {activeSub === 'validering' &&
               (model.builtin ? (
@@ -473,6 +561,7 @@ export default function WorkspaceClient() {
               modellNavn={model.navn}
               messages={panelMessages}
               reaksjoner={reaksjoner}
+              brukere={omtaleBrukere}
               canDecide={isDibk}
               currentEpost={epost}
               currentNavn={navn}

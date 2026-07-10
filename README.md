@@ -39,7 +39,7 @@ Read in `lib/supabase.ts`. Because these values are used in client code, Next.js
 
 ### Database
 
-The schema lives in `db/schema.sql`, with ordered migrations in `db/patches/` (`01`–`07`). Run `schema.sql` first against your Supabase project, then apply the patches in numeric order.
+The schema lives in `db/schema.sql`, with ordered migrations in `db/patches/` (`01`–`08`). Run `schema.sql` first against your Supabase project, then apply the patches in numeric order.
 
 Main tables:
 
@@ -50,6 +50,18 @@ Main tables:
 - `bruker_rolle` — per-user role, set manually; governs proposal approval.
 - `diskusjon` — comments and change proposals.
 - `dokument` — attached documents (pdf/word/xml/text; binaries in the `dokumenter` storage bucket).
+- `varsel` — per-user notifications (new proposals → DiBK, decisions → author, `@`-mentions), populated by triggers on `diskusjon`.
+- `traad_lest` — when each user last read a discussion thread; drives the unread badges.
+
+### Email notifications (optional)
+
+In-app notifications (the *Mine varsler* inbox filter and badges) work with patch `08` alone. To also send email:
+
+1. Deploy the Edge Function: `supabase functions deploy send-varsel-epost` (code in `supabase/functions/send-varsel-epost/`).
+2. Set secrets under *Edge Functions → Secrets*: `RESEND_API_KEY` (from [resend.com](https://resend.com)), `VARSEL_FRA` (sender address on a verified domain), `APP_URL` (portal base URL for deep links) and optionally `VARSEL_WEBHOOK_SECRET`.
+3. Create a Database Webhook (*Database → Webhooks*): table `public.varsel`, event `INSERT`, type *Supabase Edge Function*, function `send-varsel-epost`. If you set `VARSEL_WEBHOOK_SECRET`, add an `Authorization: Bearer <secret>` header on the webhook.
+
+Without the API key the function no-ops (HTTP 200) and the portal keeps working with in-app notifications only. A different provider (SendGrid, SMTP relay) can be swapped in by replacing the single `fetch` against `api.resend.com`.
 
 ## Modules
 

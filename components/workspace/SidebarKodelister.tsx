@@ -30,7 +30,7 @@ function Chevron({ open }: { open: boolean }) {
 type EditPos = { li: number; ri: number | 'new' } | null;
 
 export default function SidebarKodelister({ model }: { model: ModellView }) {
-  const { value, setValue, status, revision, stale, reload } = useDokumentData<Kodeliste[]>(
+  const { value, setValue, status, revision, stale, reload, hentServerVerdi } = useDokumentData<Kodeliste[]>(
     model.id,
     'kodelister',
     model.kodelisterDefault,
@@ -174,6 +174,8 @@ export default function SidebarKodelister({ model }: { model: ModellView }) {
         visible={status === 'conflict' || stale}
         onReload={reload}
         style={{ marginTop: 6, fontSize: '0.72rem' }}
+        lokal={lister}
+        hentServer={hentServerVerdi}
       />
     </div>
   );

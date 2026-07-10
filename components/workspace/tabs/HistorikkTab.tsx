@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ModellView } from '@/components/workspace/types';
 import { fetchHistorikk, gjenopprettVersjon, type HistorikkRad } from '@/lib/historikk';
+import { jsonDiff } from '@/lib/diff';
+import DiffListe from '@/components/shared/DiffListe';
 
 /** Vennlige norske etiketter for kjente datatyper. Ukjent type vises som-is. */
 const TYPE_LABEL: Record<string, string> = {
@@ -28,6 +30,7 @@ export default function HistorikkTab({ model }: { model: ModellView }) {
   const [rader, setRader] = useState<HistorikkRad[]>([]);
   const [loading, setLoading] = useState(true);
   const [apen, setApen] = useState<Record<number, boolean>>({});
+  const [apenDiff, setApenDiff] = useState<Record<number, boolean>>({});
   const [melding, setMelding] = useState<{ tone: 'ok' | 'feil'; tekst: string } | null>(null);
 
   async function refresh() {
@@ -106,13 +109,22 @@ export default function HistorikkTab({ model }: { model: ModellView }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {snapshots.map((rad) => (
+                    {snapshots.map((rad, i) => {
+                      // Snapshotet rett FØR dette (listen er nyeste først).
+                      const forrige = snapshots[i + 1];
+                      return (
                       <tr key={rad.id}>
                         <td>{tidStr(rad.endret_tid)}</td>
                         <td>{rad.endret_av || '—'}</td>
                         <td>{rad.versjon ?? '—'}</td>
                         <td>{rad.detalj || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
+                          <button
+                            className="btn-link"
+                            onClick={() => setApenDiff((s) => ({ ...s, [rad.id]: !s[rad.id] }))}
+                          >
+                            {apenDiff[rad.id] ? 'Skjul endringer' : 'Vis endringer'}
+                          </button>{' '}
                           <button
                             className="btn-link"
                             onClick={() => setApen((s) => ({ ...s, [rad.id]: !s[rad.id] }))}
@@ -122,6 +134,22 @@ export default function HistorikkTab({ model }: { model: ModellView }) {
                           <button className="btn-link" onClick={() => gjenopprett(rad)}>
                             Gjenopprett
                           </button>
+                          {apenDiff[rad.id] && (
+                            <div style={{ whiteSpace: 'normal', maxWidth: 560 }}>
+                              {forrige ? (
+                                <>
+                                  <div style={{ marginTop: 8, fontSize: '0.72rem', color: 'var(--fg-2)' }}>
+                                    Endringer siden forrige versjon ({tidStr(forrige.endret_tid)}):
+                                  </div>
+                                  <DiffListe linjer={jsonDiff(forrige.innhold, rad.innhold)} />
+                                </>
+                              ) : (
+                                <p style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--fg-2)' }}>
+                                  Første lagrede versjon — ingen tidligere å sammenlikne med.
+                                </p>
+                              )}
+                            </div>
+                          )}
                           {apen[rad.id] && (
                             <pre
                               style={{
@@ -139,7 +167,8 @@ export default function HistorikkTab({ model }: { model: ModellView }) {
                           )}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -13,7 +13,7 @@ import { DATAMODELL_HTML } from '@/data/hoeringOgOffentligEttersynV2.brevmaler';
  * kobles opp av lib/brevmalEditor.ts og lagres delt via useDokumentData.
  */
 export default function BrevmalEditor({ datamodellId }: { datamodellId: string }) {
-  const { value, setValue, status, revision, stale, reload } = useDokumentData<BrevmalData>(
+  const { value, setValue, status, revision, stale, reload, hentServerVerdi } = useDokumentData<BrevmalData>(
     datamodellId,
     'brevmaler',
     {},
@@ -46,6 +46,8 @@ export default function BrevmalEditor({ datamodellId }: { datamodellId: string }
         visible={status === 'conflict' || stale}
         onReload={reload}
         style={{ marginBottom: 12 }}
+        lokal={value}
+        hentServer={hentServerVerdi}
       />
       <div ref={containerRef} dangerouslySetInnerHTML={{ __html: DATAMODELL_HTML }} />
     </>

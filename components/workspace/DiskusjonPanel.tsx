@@ -3,11 +3,45 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ForslagStatus, Melding, MeldingType } from '@/lib/diskusjon';
 import type { Reaksjon, ReaksjonVerdi } from '@/lib/reaksjoner';
+import {
+  aktivOmtaleQuery,
+  omtaleForslag,
+  splittOmtaler,
+  type OmtaleBruker,
+} from '@/lib/omtaler';
 
 function statusPill(status: ForslagStatus | null) {
   if (status === 'approved') return { cls: 'pill pill--success', label: 'Godkjent' };
   if (status === 'rejected') return { cls: 'pill pill--danger', label: 'Avvist' };
   return { cls: 'pill pill--warning', label: 'Venter på DiBK' };
+}
+
+/** Meldingstekst med uthevede @-omtaler («@Visningsnavn» fra bruker_rolle). */
+function OmtaleTekst({ tekst, brukere }: { tekst: string | null; brukere: OmtaleBruker[] }) {
+  if (!tekst) return null;
+  const segmenter = splittOmtaler(tekst, brukere);
+  return (
+    <>
+      {segmenter.map((s, i) =>
+        s.omtale ? (
+          <span
+            key={i}
+            style={{
+              color: 'var(--accent-text)',
+              fontWeight: 600,
+              background: 'var(--accent-tinted)',
+              borderRadius: 4,
+              padding: '0 3px',
+            }}
+          >
+            {s.tekst}
+          </span>
+        ) : (
+          <span key={i}>{s.tekst}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 export default function DiskusjonPanel({
@@ -16,6 +50,7 @@ export default function DiskusjonPanel({
   modellNavn,
   messages,
   reaksjoner,
+  brukere,
   canDecide,
   currentEpost,
   currentNavn,
@@ -32,6 +67,8 @@ export default function DiskusjonPanel({
   modellNavn: string;
   messages: Melding[];
   reaksjoner: Reaksjon[];
+  /** Brukere som kan @-omtales (visningsnavn fra bruker_rolle). */
+  brukere: OmtaleBruker[];
   canDecide: boolean;
   currentEpost: string;
   currentNavn: string;
@@ -50,8 +87,33 @@ export default function DiskusjonPanel({
   const [editId, setEditId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState('');
   const [editEndring, setEditEndring] = useState('');
+  const [caret, setCaret] = useState(0);
   const threadRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const ctxIsField = !!ctx;
+
+  // @-autocomplete: aktivt «@søk» rett før markøren + brukere som matcher.
+  const omtaleQuery = aktivOmtaleQuery(body, caret);
+  const omtaleKandidater = omtaleQuery ? omtaleForslag(omtaleQuery.query, brukere) : [];
+
+  function velgOmtale(b: OmtaleBruker) {
+    if (!omtaleQuery) return;
+    const foran = body.slice(0, omtaleQuery.start);
+    const bak = body.slice(caret);
+    const innsatt = `@${b.navn} `;
+    const nyBody = foran + innsatt + bak;
+    const nyCaret = foran.length + innsatt.length;
+    setBody(nyBody);
+    setCaret(nyCaret);
+    // Sett markøren rett etter navnet når textarea har fått ny verdi.
+    requestAnimationFrame(() => {
+      const el = bodyRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(nyCaret, nyCaret);
+      }
+    });
+  }
 
   const eier = (m: Melding) =>
     m.epost && currentEpost
@@ -273,7 +335,9 @@ export default function DiskusjonPanel({
                           {m.endring}
                         </div>
                       )}
-                      <div style={{ fontSize: '0.9rem', color: 'var(--fg-1)' }}>{m.body}</div>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--fg-1)' }}>
+                        <OmtaleTekst tekst={m.body} brukere={brukere} />
+                      </div>
                       <div style={{ marginTop: 8 }}>
                         <span className={sp.cls}>{sp.label}</span>
                       </div>
@@ -323,7 +387,7 @@ export default function DiskusjonPanel({
                         padding: '9px 11px',
                       }}
                     >
-                      {m.body}
+                      <OmtaleTekst tekst={m.body} brukere={brukere} />
                     </div>
                     {reaksjonerRad(m)}
                     {eierAksjoner(m)}
@@ -350,23 +414,81 @@ export default function DiskusjonPanel({
             <input className="input input--sm" value={endring} onChange={(e) => setEndring(e.target.value)} placeholder="Foreslått endring (fra → til)" style={{ fontFamily: 'var(--font-mono)' }} />
           </div>
         )}
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={mode === 'proposal' ? 'Begrunnelse for endringen…' : 'Skriv en kommentar…'}
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '0.9rem',
-            border: '1px solid var(--neutral-border-strong)',
-            borderRadius: 'var(--radius-md)',
-            padding: 9,
-            resize: 'vertical',
-            minHeight: 56,
-            width: '100%',
-            background: 'var(--bg-1)',
-            color: 'var(--fg-1)',
-          }}
-        />
+        <div style={{ position: 'relative' }}>
+          {omtaleQuery && omtaleKandidater.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                right: 0,
+                marginBottom: 4,
+                background: 'var(--bg-1)',
+                border: '1px solid var(--neutral-border-strong)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+                maxHeight: 180,
+                overflowY: 'auto',
+                zIndex: 20,
+              }}
+            >
+              {omtaleKandidater.slice(0, 6).map((b) => (
+                <button
+                  key={b.epost}
+                  type="button"
+                  // onMouseDown så valget skjer FØR textarea mister fokus.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    velgOmtale(b);
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    appearance: 'none',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    padding: '7px 11px',
+                    fontSize: '0.86rem',
+                    color: 'var(--fg-1)',
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>@{b.navn}</span>
+                  <span style={{ color: 'var(--fg-2)', fontSize: '0.74rem', marginLeft: 8 }}>
+                    {b.epost}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <textarea
+            ref={bodyRef}
+            value={body}
+            onChange={(e) => {
+              setBody(e.target.value);
+              setCaret(e.target.selectionStart ?? e.target.value.length);
+            }}
+            onSelect={(e) => setCaret((e.target as HTMLTextAreaElement).selectionStart ?? 0)}
+            placeholder={
+              mode === 'proposal'
+                ? 'Begrunnelse for endringen… (@navn varsler en kollega)'
+                : 'Skriv en kommentar… (@navn varsler en kollega)'
+            }
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.9rem',
+              border: '1px solid var(--neutral-border-strong)',
+              borderRadius: 'var(--radius-md)',
+              padding: 9,
+              resize: 'vertical',
+              minHeight: 56,
+              width: '100%',
+              background: 'var(--bg-1)',
+              color: 'var(--fg-1)',
+            }}
+          />
+        </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className="btn btn--primary btn--md" onClick={send} style={{ flex: 1 }}>
             Send

@@ -7,17 +7,21 @@
 // til felt-tråden.
 import { useMemo, useState } from 'react';
 import type { ForslagStatus, Melding } from '@/lib/diskusjon';
+import { VARSEL_KIND_LABEL, type Varsel } from '@/lib/varsler';
 
 interface InnboksProps {
   messages: Melding[]; // alle diskusjon-meldinger (allerede hentet)
+  varsler: Varsel[]; // innlogget brukers personlige varsler
   modellNavn: (datamodellId: string) => string; // slå opp visningsnavn
   canDecide: boolean; // DiBK/admin kan godkjenne/avvise
   onGoTo: (datamodellId: string, kontekst: string | null) => void; // hopp til tråd
   onDecide: (id: string, status: ForslagStatus) => void;
+  onMarkerLest: (id: number) => void;
+  onMarkerAlleLest: () => void;
 }
 
 // Hvilken meldingstype som vises.
-type TypeFilter = 'all' | 'proposal' | 'comment';
+type TypeFilter = 'all' | 'proposal' | 'comment' | 'varsel';
 // Status-filter — gjelder kun endringsforslag.
 type StatusFilter = 'open' | 'approved' | 'rejected' | 'all';
 
@@ -33,6 +37,7 @@ const TYPE_FILTRE: { key: TypeFilter; label: string }[] = [
   { key: 'all', label: 'Alle' },
   { key: 'proposal', label: 'Forslag' },
   { key: 'comment', label: 'Kommentarer' },
+  { key: 'varsel', label: 'Mine varsler' },
 ];
 
 const STATUS_FILTRE: { key: StatusFilter; label: string }[] = [
@@ -65,10 +70,13 @@ function feltSti(m: Melding): string {
 
 export default function InnboksView({
   messages,
+  varsler,
   modellNavn,
   canDecide,
   onGoTo,
   onDecide,
+  onMarkerLest,
+  onMarkerAlleLest,
 }: InnboksProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
@@ -94,14 +102,18 @@ export default function InnboksView({
     );
   }, [messages]);
 
-  // Antall per type (til knappe-tellerne). Kommentarer telles per felt-tråd.
+  const ulesteVarsler = useMemo(() => varsler.filter((v) => !v.lest).length, [varsler]);
+
+  // Antall per type (til knappe-tellerne). Kommentarer telles per felt-tråd;
+  // for varsler telles kun uleste (lest historikk står fortsatt i listen).
   const typeTellere = useMemo(
     () => ({
       all: forslag.length + kommentarGrupper.length,
       proposal: forslag.length,
       comment: kommentarGrupper.length,
+      varsel: ulesteVarsler,
     }),
-    [forslag, kommentarGrupper],
+    [forslag, kommentarGrupper, ulesteVarsler],
   );
 
   // Antall per status (kun forslag — til status-knappene).
@@ -116,6 +128,7 @@ export default function InnboksView({
   );
 
   const visStatusFilter = typeFilter === 'proposal';
+  const visVarsler = typeFilter === 'varsel';
 
   // Forslag i valgt status-filter, sortert nyeste først.
   const synligeForslag = useMemo(() => {
@@ -143,7 +156,9 @@ export default function InnboksView({
       ? 'Ingen kommentarer.'
       : typeFilter === 'proposal'
         ? 'Ingen endringsforslag i dette filteret.'
-        : 'Ingen meldinger ennå.';
+        : typeFilter === 'varsel'
+          ? 'Ingen varsler ennå. Du varsles ved nye forslag, avgjørelser og @-omtaler.'
+          : 'Ingen meldinger ennå.';
 
   // Hva som faktisk vises i valgt type-filter.
   const rader: Rad[] =
@@ -190,9 +205,34 @@ export default function InnboksView({
           ))}
         </div>
       )}
-      {!visStatusFilter && <div style={{ marginBottom: 16 }} />}
+      {visVarsler && ulesteVarsler > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <button className="btn btn--secondary btn--sm" onClick={onMarkerAlleLest}>
+            Marker alle som lest
+          </button>
+        </div>
+      )}
+      {!visStatusFilter && !(visVarsler && ulesteVarsler > 0) && <div style={{ marginBottom: 16 }} />}
 
-      {rader.length === 0 ? (
+      {visVarsler ? (
+        varsler.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'var(--fg-2)', fontSize: '0.86rem', padding: 32 }}>
+            {tomTekst}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {varsler.map((v) => (
+              <VarselKort
+                key={v.id}
+                v={v}
+                modellNavn={modellNavn}
+                onGoTo={onGoTo}
+                onMarkerLest={onMarkerLest}
+              />
+            ))}
+          </div>
+        )
+      ) : rader.length === 0 ? (
         <div style={{ textAlign: 'center', color: 'var(--fg-2)', fontSize: '0.86rem', padding: 32 }}>
           {tomTekst}
         </div>
@@ -310,6 +350,87 @@ function ForslagKort({
               Avvis
             </button>
           </>
+        )}
+      </div>
+    </article>
+  );
+}
+
+// ---- Kort: personlig varsel (nytt forslag / avgjørelse / omtale) ----------
+
+function VarselKort({
+  v,
+  modellNavn,
+  onGoTo,
+  onMarkerLest,
+}: {
+  v: Varsel;
+  modellNavn: (id: string) => string;
+  onGoTo: (id: string, kontekst: string | null) => void;
+  onMarkerLest: (id: number) => void;
+}) {
+  const pillCls =
+    v.kind === 'forslag_godkjent'
+      ? 'pill pill--success'
+      : v.kind === 'forslag_avvist'
+        ? 'pill pill--danger'
+        : v.kind === 'omtale'
+          ? 'pill pill--info'
+          : 'pill pill--warning';
+
+  function aapne() {
+    if (!v.lest) onMarkerLest(v.id);
+    onGoTo(v.datamodell_id, v.kontekst);
+  }
+
+  return (
+    <article
+      onClick={aapne}
+      title="Åpne diskusjonen"
+      style={{
+        ...kortStil,
+        background: v.lest ? 'var(--bg-1)' : 'var(--accent-tinted)',
+        border: v.lest ? '1px solid var(--neutral-border)' : '1px solid var(--accent-border)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+        {!v.lest && (
+          <span
+            title="Ulest"
+            style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-base)', flexShrink: 0 }}
+          />
+        )}
+        <span style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--accent-text)' }}>
+          {modellNavn(v.datamodell_id)}
+        </span>
+        <span className={pillCls}>{VARSEL_KIND_LABEL[v.kind]}</span>
+        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'var(--fg-2)' }}>
+          {formatTid(v.opprettet)}
+        </span>
+      </div>
+
+      {v.kontekst && (
+        <div className="eyebrow" style={{ marginBottom: 6 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', textTransform: 'none' }}>{v.kontekst}</span>
+        </div>
+      )}
+
+      {v.tekst && <div style={{ fontSize: '0.9rem', color: 'var(--fg-1)' }}>{v.tekst}</div>}
+
+      {v.aktor_navn && (
+        <div style={{ marginTop: 8, fontWeight: 600, fontSize: '0.82rem', color: 'var(--fg-1)' }}>
+          {v.aktor_navn}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+        <button className="btn btn--tertiary btn--sm" onClick={aapne}>
+          Åpne diskusjon
+        </button>
+        {!v.lest && (
+          <button className="btn btn--tertiary btn--sm" onClick={() => onMarkerLest(v.id)}>
+            Marker som lest
+          </button>
         )}
       </div>
     </article>
