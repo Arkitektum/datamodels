@@ -4,8 +4,9 @@
  * Rådgivende bibliotek-oppslag for et felt- eller objektnavn. Viser en liten
  * 📚-knapp; ved klikk slås navnet opp mot /api/bibliotek/oppslag og resultatet
  * vises i en flytende panel med to seksjoner: «Eksakt» (samme navn) og
- * «Liknende» (nær skrivemåte). Kun forslag — komponenten skriver aldri tilbake
- * i strukturen.
+ * «Liknende» (nær skrivemåte). Panelet kan dras rundt etter overskriften, så
+ * det ikke ligger i veien for feltet man jobber med. Kun forslag —
+ * komponenten skriver aldri tilbake i strukturen.
  */
 import { useEffect, useRef, useState } from 'react';
 
@@ -47,6 +48,8 @@ export default function BibliotekKnapp({
   const [laster, setLaster] = useState(false);
   const [feil, setFeil] = useState<string | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [drar, setDrar] = useState(false);
+  const dragOffset = useRef({ dx: 0, dy: 0 });
   const knappRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +72,41 @@ export default function BibliotekKnapp({
       document.removeEventListener('keydown', esc);
     };
   }, [open]);
+
+  // Flytting: overskriften er draghåndtak. Panelet holdes innenfor viewporten.
+  function startDrag(e: React.PointerEvent) {
+    if (!pos) return;
+    dragOffset.current = { dx: e.clientX - pos.left, dy: e.clientY - pos.top };
+    setDrar(true);
+    e.preventDefault();
+  }
+
+  useEffect(() => {
+    if (!drar) return;
+    const flytt = (e: PointerEvent) => {
+      const boks = panelRef.current?.getBoundingClientRect();
+      const bredde = boks?.width ?? 380;
+      const hoyde = Math.min(boks?.height ?? 200, window.innerHeight - 16);
+      const left = Math.max(
+        8,
+        Math.min(e.clientX - dragOffset.current.dx, window.innerWidth - bredde - 8),
+      );
+      const top = Math.max(
+        8,
+        Math.min(e.clientY - dragOffset.current.dy, window.innerHeight - hoyde - 8),
+      );
+      setPos({ top, left });
+    };
+    const slipp = () => setDrar(false);
+    window.addEventListener('pointermove', flytt);
+    window.addEventListener('pointerup', slipp);
+    window.addEventListener('pointercancel', slipp);
+    return () => {
+      window.removeEventListener('pointermove', flytt);
+      window.removeEventListener('pointerup', slipp);
+      window.removeEventListener('pointercancel', slipp);
+    };
+  }, [drar]);
 
   async function aapne() {
     const q = navn.trim();
@@ -143,15 +181,26 @@ export default function BibliotekKnapp({
           }}
         >
           <div
+            onPointerDown={startDrag}
+            title="Dra for å flytte panelet"
             style={{
               fontSize: '0.7rem',
               textTransform: 'uppercase',
               letterSpacing: '.04em',
               color: 'var(--fg-3)',
               marginBottom: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              cursor: drar ? 'grabbing' : 'grab',
+              userSelect: 'none',
+              touchAction: 'none',
             }}
           >
-            Bibliotek · {kind === 'felt' ? 'feltnavn' : 'objektnavn'} «{navn}»
+            <span aria-hidden style={{ letterSpacing: 0 }}>⠿</span>
+            <span>
+              Bibliotek · {kind === 'felt' ? 'feltnavn' : 'objektnavn'} «{navn}»
+            </span>
           </div>
 
           {laster && <div style={{ color: 'var(--fg-3)' }}>Slår opp …</div>}
