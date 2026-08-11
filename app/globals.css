@@ -346,7 +346,7 @@ select.res-select.res-advarsel { color: #b06f00; font-weight: 700; }
 }
 
 /* ============ Struktur + brevmal-bygger (egendefinerte modeller) ============ */
-.struktur-objekt { margin-bottom: 18px; }
+.struktur-objekt { margin-top: 24px; margin-bottom: 18px; }
 .struktur-objekt h2 { border: none; padding: 0; color: var(--accent); }
 
 .brev-bygg { margin-bottom: 18px; }

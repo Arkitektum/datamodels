@@ -45,5 +45,7 @@ export const SUBTABS: { id: string; label: string }[] = [
   { id: 'validerxml', label: 'Valider XML' },
   { id: 'diskusjon', label: 'Diskusjon' },
   { id: 'validering', label: 'Valideringsregler' },
-  { id: 'historikk', label: 'Historikk' },
+  // Historikk-fanen er skjult. Logging og HistorikkTab er intakt – legg linjen
+  // under tilbake for å vise fanen igjen.
+  // { id: 'historikk', label: 'Historikk' },
 ];
