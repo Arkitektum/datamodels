@@ -53,24 +53,14 @@ export default function BibliotekKnapp({
   const knappRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Panelet lukkes bare når brukeren selv vil: X-knappen, 📚-knappen eller
+  // Escape. Klikk utenfor lukker det ikke – da ville det forsvinne så snart man
+  // klikket i feltnavnet man skulle sammenlikne med.
   useEffect(() => {
     if (!open) return;
-    const lukk = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (
-        knappRef.current?.contains(t) ||
-        panelRef.current?.contains(t)
-      )
-        return;
-      setOpen(false);
-    };
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', lukk);
     document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', lukk);
-      document.removeEventListener('keydown', esc);
-    };
+    return () => document.removeEventListener('keydown', esc);
   }, [open]);
 
   // Flytting: overskriften er draghåndtak. Panelet holdes innenfor viewporten.
@@ -201,6 +191,27 @@ export default function BibliotekKnapp({
             <span>
               Bibliotek · {kind === 'felt' ? 'feltnavn' : 'objektnavn'} «{navn}»
             </span>
+            <button
+              type="button"
+              title="Lukk"
+              aria-label="Lukk bibliotek-panelet"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setOpen(false)}
+              style={{
+                marginLeft: 'auto',
+                appearance: 'none',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                color: 'var(--fg-3)',
+                fontSize: '0.95rem',
+                lineHeight: 1,
+                padding: '0 2px',
+                flexShrink: 0,
+              }}
+            >
+              ×
+            </button>
           </div>
 
           {laster && <div style={{ color: 'var(--fg-3)' }}>Slår opp …</div>}
