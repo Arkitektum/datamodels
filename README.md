@@ -39,7 +39,7 @@ Read in `lib/supabase.ts`. Because these values are used in client code, Next.js
 
 ### Database
 
-The schema lives in `db/schema.sql`, with ordered migrations in `db/patches/` (`01`–`09`). Run `schema.sql` first against your Supabase project, then apply the patches in numeric order.
+The schema lives in `db/schema.sql`, with ordered migrations in `db/patches/` (`01`–`10`). Run `schema.sql` first against your Supabase project, then apply the patches in numeric order.
 
 Main tables:
 
@@ -58,6 +58,12 @@ Main tables:
 Patch `09` adds `synlighet` to `datamodell`: a custom model can be kept **private** (visible only to the user who created it) until it is ready to share. Row-level security enforces it on both `datamodell` and `dokument_data`, so the content of a private model is not readable by others either. Existing models are migrated as `delt` (shared).
 
 Until the patch is applied the app keeps working — it falls back to the old columns and treats every model as shared — but the visibility selector will report that the patch is missing.
+
+### Uploaded files
+
+Patch `10` hardens the `dokumenter` storage bucket: a MIME allowlist and a 50 MB size limit, enforced by Storage itself. `text/html`, `image/svg+xml` and scripts are deliberately excluded — without the allowlist, any authenticated user could call the Storage API directly with `contentType: 'text/html'`, request a signed URL and have it rendered inline on the project's `*.supabase.co` domain. The client mirrors the same list (`MIME_FOR_ENDELSE` in `lib/dokumenter.ts`) and derives the content type from the file extension rather than trusting `file.type`, so rejected files get a clear message instead of a silent failure.
+
+Download links use `createSignedUrl(..., { download: true })` so files are downloaded rather than rendered; the inline preview (`<img>` / `<iframe>`) is the only place a file is shown in place.
 
 ### Email notifications (optional)
 

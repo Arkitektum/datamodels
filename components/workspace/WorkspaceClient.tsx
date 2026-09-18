@@ -386,6 +386,16 @@ export default function WorkspaceClient() {
     model.root ? `rot ${model.root}` : '',
   ].filter(Boolean);
 
+  // Innboksen og badgene viser tråder på tvers av modeller, så de må begrenses
+  // til modellene brukeren faktisk ser – ellers lekker kommentarer fra private
+  // modeller ut. RLS gjør det samme i basen (patch 09); dette er nettet under,
+  // og dekker også databaser der patchen ikke er kjørt ennå.
+  const synligDiskusjon = useMemo(() => {
+    if (!customLoaded) return diskusjon;
+    const synlige = new Set(models.map((m) => m.id));
+    return diskusjon.filter((m) => synlige.has(m.datamodell_id));
+  }, [diskusjon, models, customLoaded]);
+
   const ctxLabel = threadCtx ? threadCtx.split('.').pop() || threadCtx : 'Hele modellen';
   const panelMessages = traadFor(diskusjon, activeId, threadCtx);
   const modelMessages = diskusjon.filter((m) => m.datamodell_id === activeId);
@@ -424,7 +434,7 @@ export default function WorkspaceClient() {
     const map = new Map(models.map((m) => [m.id, m.navn]));
     return (id: string) => map.get(id) ?? id;
   }, [models]);
-  const apneForslag = diskusjon.filter((m) => m.type === 'proposal' && m.status === 'open').length;
+  const apneForslag = synligDiskusjon.filter((m) => m.type === 'proposal' && m.status === 'open').length;
 
   // Tråden i panelet regnes som lest når den faktisk vises (modellvisning uten
   // aktivt søk). Skrives kun når det finnes uleste, så vi ikke spammer upserts.
@@ -458,7 +468,7 @@ export default function WorkspaceClient() {
               <GlobalSearch query={search} models={sokModeller} onGoTo={goToTreff} />
             ) : view === 'innboks' ? (
               <InnboksView
-                messages={diskusjon}
+                messages={synligDiskusjon}
                 varsler={varsler}
                 modellNavn={modellNavn}
                 canDecide={isDibk}

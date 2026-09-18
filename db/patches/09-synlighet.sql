@@ -34,10 +34,37 @@ end $$;
 
 create index if not exists idx_datamodell_eier on public.datamodell (lower(eier_epost));
 
+-- Rolleoppslaget i appen slår opp med eq mot lowercase (ilike ville tolket `_`
+-- i en e-post som jokertegn). Appen skriver allerede lowercase; her ryddes rader
+-- som måtte være lagt inn manuelt med store bokstaver.
+update public.bruker_rolle
+   set epost = lower(epost)
+ where epost <> lower(epost)
+   and not exists (
+       select 1 from public.bruker_rolle b2 where b2.epost = lower(public.bruker_rolle.epost)
+   );
+
 -- Den innloggede brukerens e-post, i lowercase. NULL for anonyme.
 create or replace function public.min_epost() returns text
 language sql stable as $$
     select lower(nullif(auth.jwt() ->> 'email', ''));
+$$;
+
+-- Kan innlogget bruker se denne modellen? Delte modeller: ja. Private: kun
+-- eieren. Ukjent id (modell slettet, eller innebygd uten rad): ja – da finnes
+-- det ingen privat rad å beskytte.
+--
+-- Brukes av ALLE tabellene som henger på en datamodell. Uten dette ville
+-- innholdet i en privat modell lekket ut gjennom innboksen, globalt søk og
+-- dokumentlisten, selv om selve modellen var skjult i sidemenyen.
+create or replace function public.modell_synlig(modell_id text) returns boolean
+language sql stable security definer set search_path = public as $$
+    select not exists (
+        select 1 from public.datamodell d
+        where d.id = modell_id
+          and d.synlighet = 'privat'
+          and lower(coalesce(d.eier_epost, '')) is distinct from coalesce(public.min_epost(), '')
+    );
 $$;
 
 -- --------------------------------------------------------------------
@@ -77,15 +104,7 @@ drop policy if exists "dd_endre" on public.dokument_data;
 drop policy if exists "dd_slett" on public.dokument_data;
 
 create policy "dd_les" on public.dokument_data
-    for select to authenticated
-    using (
-        not exists (
-            select 1 from public.datamodell d
-            where d.id = dokument_data.datamodell_id
-              and d.synlighet = 'privat'
-              and lower(coalesce(d.eier_epost, '')) is distinct from coalesce(public.min_epost(), '')
-        )
-    );
+    for select to authenticated using (public.modell_synlig(datamodell_id));
 
 create policy "dd_ny" on public.dokument_data
     for insert to authenticated with check (true);
@@ -95,3 +114,52 @@ create policy "dd_endre" on public.dokument_data
 
 create policy "dd_slett" on public.dokument_data
     for delete to authenticated using (true);
+
+-- --------------------------------------------------------------------
+-- diskusjon: kommentarer og endringsforslag på en privat modell skal
+-- ikke dukke opp i andres innboks eller globale søk.
+--
+-- Kun SELECT-policyen byttes. diskusjon_ny/slett/egen_endre/avgjor er
+-- insert/update/delete og gir ingen lesetilgang, så vernet av `status`
+-- (kun DiBK) i trg_diskusjon_vern_status står uendret.
+-- --------------------------------------------------------------------
+drop policy if exists "diskusjon_les" on public.diskusjon;
+create policy "diskusjon_les" on public.diskusjon
+    for select to authenticated using (public.modell_synlig(datamodell_id));
+
+-- --------------------------------------------------------------------
+-- dokument: opplastede filer og notater på en privat modell. Den gamle
+-- «for all»-policyen måtte deles opp av samme grunn som over.
+-- --------------------------------------------------------------------
+alter table public.dokument enable row level security;
+drop policy if exists "dokument_alt" on public.dokument;
+drop policy if exists "dok_les" on public.dokument;
+drop policy if exists "dok_ny" on public.dokument;
+drop policy if exists "dok_endre" on public.dokument;
+drop policy if exists "dok_slett" on public.dokument;
+
+create policy "dok_les" on public.dokument
+    for select to authenticated using (public.modell_synlig(datamodell_id));
+
+create policy "dok_ny" on public.dokument
+    for insert to authenticated with check (true);
+
+create policy "dok_endre" on public.dokument
+    for update to authenticated using (true) with check (true);
+
+create policy "dok_slett" on public.dokument
+    for delete to authenticated using (true);
+
+-- --------------------------------------------------------------------
+-- Storage: selve binærfilene. lastOppFil lagrer dem som
+-- «<datamodell_id>/<uuid>-<filnavn>», så første mappeledd er modell-id-en
+-- og kan sjekkes med samme funksjon. Objekter uten mappeledd (eldre filer)
+-- gir NULL, som modell_synlig() svarer «synlig» på – ingen låses ute.
+-- --------------------------------------------------------------------
+drop policy if exists "dok_storage_les" on storage.objects;
+create policy "dok_storage_les" on storage.objects
+    for select to authenticated
+    using (
+        bucket_id = 'dokumenter'
+        and public.modell_synlig((storage.foldername(name))[1])
+    );

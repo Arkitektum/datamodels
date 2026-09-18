@@ -20,7 +20,9 @@ const ALLOWED_TAGS: Record<string, string[]> = {
   blockquote: [],
   div: [],
   span: [],
-  a: ['href', 'target', 'rel'],
+  // `rel` står bevisst IKKE her: den settes alltid av oss under, slik at en
+  // lagret rel="" ikke kan slå ut noopener-vernet.
+  a: ['href', 'target'],
 };
 const DROP_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'svg', 'math']);
 const VOID_TAGS = new Set(['br']);
@@ -38,18 +40,29 @@ export function sanitizeHtml(html: string | null | undefined): string {
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
     const el = node as Element;
     const tag = el.tagName.toLowerCase();
-    const inner = Array.from(el.childNodes).map(clean).join('');
     if (DROP_TAGS.has(tag)) return ''; // fjern hele elementet og innholdet
-    if (!(tag in ALLOWED_TAGS)) return inner; // ukjent tag: pakk ut, behold tekst
+    const inner = Array.from(el.childNodes).map(clean).join('');
+    // hasOwnProperty, ikke `in`: `in` går opp prototypekjeden, så en tag som
+    // <constructor> eller <tostring> ville blitt sett på som tillatt og gitt en
+    // funksjon i stedet for en attributt-liste (TypeError → hele visningen
+    // krasjer for alle som åpner dokumentet).
+    if (!Object.prototype.hasOwnProperty.call(ALLOWED_TAGS, tag)) return inner;
 
     let attrs = '';
+    let harHref = false;
     for (const name of ALLOWED_TAGS[tag]) {
       const v = el.getAttribute(name);
       if (v == null) continue;
-      if (name === 'href' && /^\s*(javascript|data|vbscript):/i.test(v)) continue;
+      if (name === 'href') {
+        if (/^\s*(javascript|data|vbscript):/i.test(v)) continue;
+        harHref = true;
+      }
       attrs += ` ${name}="${escAttr(v)}"`;
     }
-    if (tag === 'a' && attrs.includes('href=')) attrs += ' rel="noopener noreferrer"';
+    // Lenker får alltid vårt eget rel – aldri brukerens. Kun når en href
+    // faktisk ble sluppet gjennom; en forkastet javascript:-lenke er ikke
+    // lenger en lenke og skal ikke ha rel.
+    if (tag === 'a' && harHref) attrs += ' rel="noopener noreferrer"';
     if (VOID_TAGS.has(tag)) return `<${tag}${attrs}>`;
     return `<${tag}${attrs}>${inner}</${tag}>`;
   };

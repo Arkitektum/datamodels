@@ -37,8 +37,12 @@ const ICON_COLOR: Record<DokKind, [string, string]> = {
 };
 const UTEN = '__uten__';
 
+// Filvelgeren speiler allowlisten i lib/dokumenter.ts (MIME_FOR_ENDELSE) og på
+// Storage-bucketet (db/patches/10-storage-mime.sql). Bevisst uten `image/*`:
+// det ville tilbudt SVG, som avvises fordi den kan inneholde skript.
 const ACCEPT =
-  '.pdf,.doc,.docx,.xml,.xsd,.png,.jpg,.jpeg,.gif,.webp,.tif,.tiff,image/*,application/pdf,application/msword,application/xml,text/xml,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  '.pdf,.doc,.docx,.odt,.rtf,.xls,.xlsx,.ods,.ppt,.pptx,.xml,.xsd,' +
+  '.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.csv,.txt,.zip';
 
 const TOOLBAR: { label: string; cmd: string; title: string; extra?: React.CSSProperties }[] = [
   { label: 'B', cmd: 'bold', title: 'Fet', extra: { fontWeight: 800 } },
@@ -62,6 +66,7 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [opplastingsfeil, setOpplastingsfeil] = useState<string[]>([]);
   const [filter, setFilter] = useState<string>('alle'); // 'alle' | UTEN | mappenavn
   const editorRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -119,8 +124,12 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
     const files = Array.from(list || []);
     if (!files.length) return;
     setBusy(true);
-    await Promise.all(files.map((f) => lastOppFil(model.id, f, malmappe)));
+    setOpplastingsfeil([]);
+    const res = await Promise.all(files.map((f) => lastOppFil(model.id, f, malmappe)));
     setBusy(false);
+    // Avviste filer (f.eks. HTML/SVG, som er sperret i Storage) må sies fra om –
+    // ellers ser det ut som opplastingen gikk bra og filen bare forsvant.
+    setOpplastingsfeil(res.map((r) => r.feil).filter((f): f is string => !!f));
     reload();
   }
   async function nyttDok() {
@@ -397,6 +406,20 @@ export default function DokumenterTab({ model }: { model: ModellView }) {
           Slipp PDF, Word, XML eller bilde her{malmappe ? ` (legges i «${malmappe}»)` : ''}, eller klikk for å velge
         </span>
       </label>
+
+      {opplastingsfeil.length > 0 && (
+        <div className="callout callout--warning" style={{ marginTop: 12 }}>
+          <span className="callout-icon" />
+          <div>
+            <strong className="callout-title">Noen filer ble ikke lastet opp</strong>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+              {opplastingsfeil.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {docs.length === 0 ? (
         <div className="callout callout--info" style={{ marginTop: 14 }}>

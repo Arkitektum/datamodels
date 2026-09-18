@@ -52,7 +52,10 @@ export function useRolle(): RolleInfo {
     supabase
       .from('bruker_rolle')
       .select('rolle,navn')
-      .ilike('epost', epost)
+      // eq mot lowercase, IKKE ilike: i ilike er `_` og `%` jokertegn, så en
+      // e-post som ole_hansen@… ville matchet en annen brukers rad og vist
+      // feil rolle (og navn) i grensesnittet.
+      .eq('epost', epost.toLowerCase())
       .maybeSingle()
       .then(({ data }) => {
         if (!aktiv) return;
