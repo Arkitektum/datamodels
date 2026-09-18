@@ -9,6 +9,8 @@ import {
   createCustomModelFromXsd,
   deleteCustomModel,
   setModellStatus,
+  setModellSynlighet,
+  type Synlighet,
 } from '@/lib/customModels';
 import type { ModellStatus } from '@/lib/datamodeller';
 import { subscribeTable } from '@/lib/realtime';
@@ -63,6 +65,7 @@ import DatamodellTab from './tabs/DatamodellTab';
 import DiagramTab from './tabs/DiagramTab';
 import DokumenterTab from './tabs/DokumenterTab';
 import XsdTab from './tabs/XsdTab';
+import EksportTab from './tabs/EksportTab';
 import EksempelTab from './tabs/EksempelTab';
 import DiskusjonTab from './tabs/DiskusjonTab';
 import ValiderXmlTab from './tabs/ValiderXmlTab';
@@ -90,6 +93,7 @@ export default function WorkspaceClient() {
   const [nyNavn, setNyNavn] = useState('');
   const [nyBesk, setNyBesk] = useState('');
   const [nyStatus, setNyStatus] = useState<ModellStatus>('arbeid');
+  const [nySynlighet, setNySynlighet] = useState<Synlighet>('delt');
   const [nyXsd, setNyXsd] = useState<{ text: string; file: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -192,10 +196,18 @@ export default function WorkspaceClient() {
       vedleggDefault: d.vedlegg ?? [],
       kodelisterDefault: d.kodelister ?? [],
       slettbar: false,
+      // Innebygde modeller er alltid delte – de bor i koden, ikke i basen.
+      synlighet: 'delt' as Synlighet,
+      eierEpost: null,
     }));
     // Ekskluder eventuelle status-rader for innebygde modeller fra «egne».
+    // Private modeller skjules for alle andre enn eieren. RLS gjør den samme
+    // jobben i basen; dette er sikkerhetsnettet for databaser der patch 09
+    // ikke er kjørt ennå.
+    const megSelv = epost ? epost.toLowerCase() : null;
     const customs: ModellView[] = custom
       .filter((c) => !builtinIds.has(c.id))
+      .filter((c) => c.synlighet !== 'privat' || (!!megSelv && c.eierEpost === megSelv))
       .map((c) => ({
       id: c.id,
       navn: c.navn,
@@ -207,9 +219,11 @@ export default function WorkspaceClient() {
       vedleggDefault: [],
       kodelisterDefault: [],
       slettbar: true,
+      synlighet: c.synlighet,
+      eierEpost: c.eierEpost,
     }));
     return [...builtins, ...customs];
-  }, [custom]);
+  }, [custom, epost]);
 
   const model = models.find((m) => m.id === activeId) ?? models[0];
 
@@ -314,8 +328,10 @@ export default function WorkspaceClient() {
     let created: CustomModell | null;
     try {
       created = nyXsd
-        ? await createCustomModelFromXsd(n, nyBesk.trim() || undefined, nyStatus, nyXsd.text, nyXsd.file)
-        : await createCustomModel(n, nyBesk.trim() || undefined, nyStatus);
+        ? await createCustomModelFromXsd(
+            n, nyBesk.trim() || undefined, nyStatus, nyXsd.text, nyXsd.file, nySynlighet, epost,
+          )
+        : await createCustomModel(n, nyBesk.trim() || undefined, nyStatus, nySynlighet, epost);
     } catch (err) {
       // createCustomModelFromXsd lar parseXsd kaste ved ugyldig XSD.
       setBusy(false);
@@ -331,6 +347,7 @@ export default function WorkspaceClient() {
     setNyNavn('');
     setNyBesk('');
     setNyStatus('arbeid');
+    setNySynlighet('delt');
     setNyXsd(null);
     await reloadCustom();
     selectModel(created.id);
@@ -339,6 +356,14 @@ export default function WorkspaceClient() {
     const ok = await setModellStatus(model.id, model.navn, status);
     if (ok) reloadCustom();
     else window.alert('Kunne ikke endre status.');
+  }
+  async function endreSynlighet(synlighet: Synlighet) {
+    // Eieren settes (eller beholdes) når modellen gjøres privat – uten eier
+    // ville RLS skjult den for absolutt alle, også for den som slo den på.
+    const eier = synlighet === 'privat' ? model.eierEpost || epost || null : model.eierEpost;
+    const feil = await setModellSynlighet(model.id, synlighet, eier);
+    if (feil) window.alert(feil);
+    reloadCustom();
   }
   async function onDeleteModel() {
     if (!model.slettbar) return;
@@ -469,6 +494,19 @@ export default function WorkspaceClient() {
                 <option value="arbeid">Under arbeid</option>
                 <option value="planlagt">Planlagt</option>
               </select>
+              {!model.builtin && (
+                <select
+                  className="input input--sm"
+                  value={model.synlighet}
+                  onChange={(e) => endreSynlighet(e.target.value as Synlighet)}
+                  title="Hvem ser modellen"
+                  aria-label="Endre synlighet"
+                  style={{ width: 'auto', fontSize: '0.78rem' }}
+                >
+                  <option value="delt">Synlig for alle</option>
+                  <option value="privat">Privat (kun meg)</option>
+                </select>
+              )}
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--fg-2)' }}>{model.short}</span>
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <PresenceAvatars brukere={tilstede} />
@@ -482,6 +520,12 @@ export default function WorkspaceClient() {
             <h1 className="h4" style={{ marginBottom: 6 }}>
               {model.navn}
             </h1>
+            {model.synlighet === 'privat' && (
+              <div style={{ fontSize: '0.8rem', color: 'var(--fg-2)', marginBottom: 8 }}>
+                🔒 Privat — bare du ser denne modellen. Sett den til «Synlig for alle» når den er
+                klar for andre.
+              </div>
+            )}
             {metaParts.length > 0 && (
               <div style={{ fontSize: '0.82rem', color: 'var(--fg-2)', marginBottom: 10 }}>{metaParts.join(' · ')}</div>
             )}
@@ -532,6 +576,7 @@ export default function WorkspaceClient() {
             {activeSub === 'diagram' && <DiagramTab key={model.id} model={model} />}
             {activeSub === 'dokumenter' && <DokumenterTab key={model.id} model={model} />}
             {activeSub === 'xsd' && <XsdTab key={model.id} model={model} />}
+            {activeSub === 'eksport' && <EksportTab key={model.id} model={model} />}
             {activeSub === 'eksempel' && <EksempelTab model={model} />}
             {activeSub === 'validerxml' && <ValiderXmlTab key={model.id} model={model} />}
             {activeSub === 'diskusjon' && (
@@ -622,6 +667,25 @@ export default function WorkspaceClient() {
                 <option value="publisert">Publisert</option>
                 <option value="arbeid">Under arbeid</option>
                 <option value="planlagt">Planlagt</option>
+              </select>
+            </label>
+            <label>
+              Synlighet
+              <select
+                value={nySynlighet}
+                onChange={(e) => setNySynlighet(e.target.value as Synlighet)}
+                style={{
+                  width: '100%',
+                  marginTop: 5,
+                  padding: '11px 13px',
+                  border: '1px solid var(--neutral-border-strong)',
+                  borderRadius: 'var(--radius-md)',
+                  fontFamily: 'inherit',
+                  fontSize: '0.95rem',
+                }}
+              >
+                <option value="delt">Synlig for alle</option>
+                <option value="privat">Privat — kun meg, til jeg deler den</option>
               </select>
             </label>
             <label>

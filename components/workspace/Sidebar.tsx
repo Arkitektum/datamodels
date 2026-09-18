@@ -114,6 +114,11 @@ export default function Sidebar({
                       }}
                     >
                       {m.navn}
+                      {m.synlighet === 'privat' && (
+                        <span title="Privat — bare du ser denne" style={{ marginLeft: 6 }}>
+                          🔒
+                        </span>
+                      )}
                     </span>
                     <span
                       style={{

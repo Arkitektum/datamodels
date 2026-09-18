@@ -427,3 +427,35 @@ tr.regel-addrow button {
   padding: 4px 12px; font-size: 0.8rem; color: var(--accent); cursor: pointer; font-family: inherit;
 }
 tr.regel-addrow button:hover { background: var(--accent-soft); }
+
+/* ================== Utskriftsvisning (/print) ====================== */
+/* Egen, rolig typografi for dokumentet som skal bli PDF eller limes inn i
+   Confluence. Verktøylinja skjules ved utskrift, resten skal flyte fritt. */
+.print-side { max-width: 1040px; margin: 0 auto; padding: 28px 28px 64px; background: #fff; }
+.print-verktoey {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 10px 0 18px; margin-bottom: 18px; border-bottom: 1px solid var(--border);
+}
+.print-verktoey label { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+
+.print-dok { color: #0d1a26; line-height: 1.55; }
+.print-dok h1 { font-size: 1.8rem; margin: 0 0 4px; }
+.print-dok h2 { font-size: 1.2rem; margin: 26px 0 8px; border-bottom: 1px solid #d5d5d5; padding-bottom: 4px; }
+.print-dok h3 { font-size: 1rem; margin: 18px 0 6px; }
+.print-dok code { font-family: var(--font-mono, Consolas, monospace); font-size: 0.92em; }
+.print-dok table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 0.85rem; }
+.print-dok th, .print-dok td { border: 1px solid #c8ccd0; padding: 5px 8px; text-align: left; vertical-align: top; }
+.print-dok th { background: #eef3f9; font-weight: 700; }
+.print-dok tr:nth-child(even) td { background: #fafbfc; }
+
+.print-diagram { margin-top: 32px; }
+.print-diagram h2 { font-size: 1.2rem; border-bottom: 1px solid #d5d5d5; padding-bottom: 4px; }
+.print-diagram svg { width: 100%; height: auto; }
+
+@media print {
+  .print-verktoey { display: none; }
+  .print-side { max-width: none; margin: 0; padding: 0; }
+  .print-dok h2, .print-dok h3 { break-after: avoid; }
+  .print-dok tr { break-inside: avoid; }
+  .print-diagram { break-before: page; }
+}

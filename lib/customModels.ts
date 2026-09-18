@@ -4,11 +4,43 @@ import { getSupabase } from './supabase';
 import type { ModellStatus } from './datamodeller';
 import { parseXsd } from '@/lib/xsd';
 
+/** 'delt' = synlig for alle innloggede, 'privat' = kun for eieren. */
+export type Synlighet = 'delt' | 'privat';
+
 export interface CustomModell {
   id: string;
   navn: string;
   beskrivelse?: string | null;
   status: ModellStatus;
+  synlighet: Synlighet;
+  /** Hvem som opprettet modellen (lowercase e-post). Null på gamle rader. */
+  eierEpost: string | null;
+}
+
+// Kolonnene fra patch 09. Databaser som ikke har kjørt patchen ennå mangler
+// dem, og da feiler hele select-en – derfor forsøker vi det brede utvalget
+// først og faller tilbake til det gamle (se listCustomModels).
+const KOLONNER = 'id,navn,beskrivelse,status,synlighet,eier_epost';
+const KOLONNER_GAMLE = 'id,navn,beskrivelse,status';
+
+type Rad = {
+  id: string;
+  navn: string;
+  beskrivelse?: string | null;
+  status?: string | null;
+  synlighet?: string | null;
+  eier_epost?: string | null;
+};
+
+function tilModell(d: Rad, standardStatus: ModellStatus = 'arbeid'): CustomModell {
+  return {
+    id: d.id,
+    navn: d.navn,
+    beskrivelse: d.beskrivelse ?? null,
+    status: (d.status as ModellStatus) ?? standardStatus,
+    synlighet: d.synlighet === 'privat' ? 'privat' : 'delt',
+    eierEpost: d.eier_epost ? d.eier_epost.toLowerCase() : null,
+  };
 }
 
 // Genererer en unik id for en ny modellrad: UUID når tilgjengelig (sikker
@@ -19,48 +51,100 @@ function genererModellId(): string {
   return 'm-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
 
+/**
+ * Skyldes feilen at synlighets-kolonnene mangler (patch 09 ikke kjørt)?
+ * PostgREST svarer PGRST204 for ukjent kolonne i payloaden og 42703 for ukjent
+ * kolonne i select. Vi sjekker eksplisitt, slik at ekte feil (RLS, duplikat-id)
+ * IKKE utløser et nytt forsøk som kan skjule årsaken.
+ */
+function manglerSynlighetsKolonner(feil: { code?: string; message?: string }): boolean {
+  if (feil.code === 'PGRST204' || feil.code === '42703') return true;
+  return /synlighet|eier_epost/.test(feil.message ?? '') && /column|kolonne/i.test(feil.message ?? '');
+}
+
+/**
+ * Setter inn en ny modellrad. Forsøker først med synlighet + eier, og faller
+ * tilbake til de gamle kolonnene hvis patch 09 ikke er kjørt – da opprettes
+ * modellen som delt (kolonnene finnes jo ikke), i stedet for at det å lage en
+ * modell slutter å virke.
+ */
+async function settInnModell(
+  id: string,
+  navn: string,
+  beskrivelse: string | undefined,
+  status: ModellStatus,
+  synlighet: Synlighet,
+  eierEpost: string | null | undefined,
+): Promise<{ modell: CustomModell | null; feil: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) return { modell: null, feil: 'Supabase er ikke konfigurert.' };
+  const felles = { id, navn, beskrivelse: beskrivelse || null, status };
+
+  const { data, error } = await supabase
+    .from('datamodell')
+    .insert({ ...felles, synlighet, eier_epost: eierEpost ? eierEpost.toLowerCase() : null })
+    .select(KOLONNER)
+    .single();
+  if (!error) return { modell: tilModell(data as Rad, status), feil: null };
+  if (!manglerSynlighetsKolonner(error)) {
+    console.warn('[customModels] create', error.message);
+    return { modell: null, feil: error.message };
+  }
+
+  const { data: gammel, error: gammelFeil } = await supabase
+    .from('datamodell')
+    .insert(felles)
+    .select(KOLONNER_GAMLE)
+    .single();
+  if (gammelFeil) {
+    console.warn('[customModels] create', error.message, '/', gammelFeil.message);
+    return { modell: null, feil: gammelFeil.message };
+  }
+  return { modell: tilModell(gammel as Rad, status), feil: null };
+}
+
 export async function listCustomModels(): Promise<CustomModell[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('datamodell')
-    .select('id,navn,beskrivelse,status')
+    .select(KOLONNER)
     .order('opprettet', { ascending: true });
-  if (error) {
+  if (!error) return (data ?? []).map((d) => tilModell(d as Rad));
+  if (!manglerSynlighetsKolonner(error)) {
     console.warn('[customModels] list', error.message);
     return [];
   }
-  return (data ?? []).map((d) => ({
-    id: d.id,
-    navn: d.navn,
-    beskrivelse: d.beskrivelse,
-    status: (d.status as ModellStatus) ?? 'arbeid',
-  }));
+
+  // Patch 09 ikke kjørt ennå: kolonnene finnes ikke. Da leser vi de gamle
+  // kolonnene og behandler alt som delt, slik at portalen fortsatt virker.
+  const { data: gamle, error: gammelFeil } = await supabase
+    .from('datamodell')
+    .select(KOLONNER_GAMLE)
+    .order('opprettet', { ascending: true });
+  if (gammelFeil) {
+    console.warn('[customModels] list', error.message, '/', gammelFeil.message);
+    return [];
+  }
+  return (gamle ?? []).map((d) => tilModell(d as Rad));
 }
 
 export async function createCustomModel(
   navn: string,
   beskrivelse?: string,
   status: ModellStatus = 'arbeid',
+  synlighet: Synlighet = 'delt',
+  eierEpost?: string | null,
 ): Promise<CustomModell | null> {
-  const supabase = getSupabase();
-  if (!supabase) return null;
-  const id = genererModellId();
-  const { data, error } = await supabase
-    .from('datamodell')
-    .insert({ id, navn, beskrivelse: beskrivelse || null, status })
-    .select('id,navn,beskrivelse,status')
-    .single();
-  if (error) {
-    console.warn('[customModels] create', error.message);
-    return null;
-  }
-  return {
-    id: data.id,
-    navn: data.navn,
-    beskrivelse: data.beskrivelse,
-    status: (data.status as ModellStatus) ?? status,
-  };
+  const { modell } = await settInnModell(
+    genererModellId(),
+    navn,
+    beskrivelse,
+    status,
+    synlighet,
+    eierEpost,
+  );
+  return modell;
 }
 
 /**
@@ -80,6 +164,8 @@ export async function createCustomModelFromXsd(
   status: ModellStatus,
   xsdText: string,
   fileName: string,
+  synlighet: Synlighet = 'delt',
+  eierEpost?: string | null,
 ): Promise<CustomModell | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
@@ -89,15 +175,8 @@ export async function createCustomModelFromXsd(
 
   // Opprett modellraden (samme måte som createCustomModel).
   const id = genererModellId();
-  const { data, error } = await supabase
-    .from('datamodell')
-    .insert({ id, navn, beskrivelse: beskrivelse || null, status })
-    .select('id,navn,beskrivelse,status')
-    .single();
-  if (error) {
-    console.warn('[customModels] createFromXsd', error.message);
-    return null; // modell-insert feilet → ikke skriv dokument_data
-  }
+  const { modell } = await settInnModell(id, navn, beskrivelse, status, synlighet, eierEpost);
+  if (!modell) return null; // modell-insert feilet → ikke skriv dokument_data
 
   // Seed struktur + XSD-kilde. sist_detalj på struktur-raden gjør at appen
   // logger opprettelsen.
@@ -123,12 +202,7 @@ export async function createCustomModelFromXsd(
     console.warn('[customModels] createFromXsd seed', dErr.message);
   }
 
-  return {
-    id: data.id,
-    navn: data.navn,
-    beskrivelse: data.beskrivelse,
-    status: (data.status as ModellStatus) ?? status,
-  };
+  return modell;
 }
 
 /**
@@ -151,6 +225,34 @@ export async function setModellStatus(
     return false;
   }
   return true;
+}
+
+/**
+ * Setter synlighet på en egendefinert modell. Første gang en modell gjøres
+ * privat må den også få en eier – ellers ville RLS-policyen skjult den for
+ * alle, inkludert den som nettopp slo på bryteren.
+ *
+ * Returnerer en feilmelding når noe gikk galt, ellers null. Mangler kolonnene
+ * (patch 09 ikke kjørt) sier vi det rett ut i stedet for å feile stille.
+ */
+export async function setModellSynlighet(
+  id: string,
+  synlighet: Synlighet,
+  eierEpost: string | null,
+): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return 'Supabase er ikke konfigurert.';
+  const { error } = await supabase
+    .from('datamodell')
+    .update({ synlighet, eier_epost: eierEpost ? eierEpost.toLowerCase() : null })
+    .eq('id', id);
+  if (error) {
+    console.warn('[customModels] setSynlighet', error.message);
+    return manglerSynlighetsKolonner(error)
+      ? 'Databasen mangler synlighets-kolonnene. Kjør db/patches/09-synlighet.sql i Supabase først.'
+      : error.message;
+  }
+  return null;
 }
 
 export async function deleteCustomModel(id: string): Promise<boolean> {

@@ -4,7 +4,10 @@
       "Bash(npm run *)",
       "Bash(awk '/error/{print}')",
       "Bash(grep -oE 'react-hooks/[a-z-]+|next/[a-z-]+|@?[a-z@-]*\\\\/[a-z-]+$')",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(npm test *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'E-postvarsler via Microsoft Graph: periodisk server-jobb + /api/varsel-epost *)"
     ]
   }
 }

@@ -1,4 +1,5 @@
 import type { ModellStatus, ModellXsd } from '@/lib/datamodeller';
+import type { Synlighet } from '@/lib/customModels';
 import type { EksempelRad } from '@/data/hoeringOgOffentligEttersynV2.eksempel';
 import type { VedleggType, Kodeliste } from '@/data/hoeringOgOffentligEttersynV2.kodelister';
 import type { Struktur } from '@/lib/struktur';
@@ -24,6 +25,10 @@ export interface ModellView {
   kodelisterDefault: Kodeliste[];
   /** Kan slettes (kun egendefinerte). */
   slettbar: boolean;
+  /** 'privat' = kun eieren ser modellen (se db/patches/09-synlighet.sql). */
+  synlighet: Synlighet;
+  /** Eierens e-post (lowercase), eller null på modeller opprettet før patch 09. */
+  eierEpost: string | null;
 }
 
 export const STATUS_META: Record<
@@ -42,6 +47,7 @@ export const SUBTABS: { id: string; label: string }[] = [
   { id: 'diagram', label: 'Diagram' },
   { id: 'dokumenter', label: 'Dokumenter' },
   { id: 'xsd', label: 'XSD' },
+  { id: 'eksport', label: 'Eksport' },
   { id: 'eksempel', label: 'Eksempel' },
   { id: 'validerxml', label: 'Valider XML' },
   { id: 'diskusjon', label: 'Diskusjon' },

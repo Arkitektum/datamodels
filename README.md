@@ -39,11 +39,11 @@ Read in `lib/supabase.ts`. Because these values are used in client code, Next.js
 
 ### Database
 
-The schema lives in `db/schema.sql`, with ordered migrations in `db/patches/` (`01`–`08`). Run `schema.sql` first against your Supabase project, then apply the patches in numeric order.
+The schema lives in `db/schema.sql`, with ordered migrations in `db/patches/` (`01`–`09`). Run `schema.sql` first against your Supabase project, then apply the patches in numeric order.
 
 Main tables:
 
-- `datamodell` — one row per data model; `status` drives sidebar grouping.
+- `datamodell` — one row per data model; `status` drives sidebar grouping, `synlighet` (`delt`/`privat`) + `eier_epost` control who can see it (patch `09`).
 - `dokument_data` — the shared editable content, one row per (model, type).
 - `endring_logg` — audit trail (who/what/when), populated by a trigger.
 - `dokument_data_historikk` — content snapshots for version restore.
@@ -52,6 +52,12 @@ Main tables:
 - `dokument` — attached documents (pdf/word/xml/text; binaries in the `dokumenter` storage bucket).
 - `varsel` — per-user notifications (new proposals → DiBK, decisions → author, `@`-mentions), populated by triggers on `diskusjon`.
 - `traad_lest` — when each user last read a discussion thread; drives the unread badges.
+
+### Model visibility
+
+Patch `09` adds `synlighet` to `datamodell`: a custom model can be kept **private** (visible only to the user who created it) until it is ready to share. Row-level security enforces it on both `datamodell` and `dokument_data`, so the content of a private model is not readable by others either. Existing models are migrated as `delt` (shared).
+
+Until the patch is applied the app keeps working — it falls back to the old columns and treats every model as shared — but the visibility selector will report that the patch is missing.
 
 ### Email notifications (optional)
 
@@ -71,7 +77,19 @@ The workspace (`components/workspace/`) is a tabbed client around a selected mod
 - **GlobalSearch** — search across models and content.
 - **InnboksView / DiskusjonPanel** — discussion and change-proposal overview and per-field threads.
 
-Tabs (`components/workspace/tabs/`): **Datamodell** (letter/document view), **Xsd** (canonical XSD), **Diagram** (mermaid UML), **Eksempel** (example data), **ValiderXml** (XML validation), **Diskusjon**, **Historikk** (version history + restore), **Dokumenter**.
+Tabs (`components/workspace/tabs/`): **Datamodell** (letter/document view), **Xsd** (canonical XSD), **Diagram** (mermaid UML), **Eksport** (documentation export, see below), **Eksempel** (example data), **ValiderXml** (XML validation), **Diskusjon**, **Historikk** (version history + restore), **Dokumenter**.
+
+### Documentation export
+
+The **Eksport** tab turns the current structure into reader-friendly documentation, all generated client-side (no server, works in the static export):
+
+- **Confluence** — copies the model to the clipboard as real `text/html`, so pasting into a Confluence page yields native, editable tables rather than an image. Falls back to copying the HTML source when the browser blocks rich clipboard writes.
+- **Utskrift/PDF** — opens `/print/?model=<id>`, a clean read-only page with print CSS (`Ctrl+P` → *Save as PDF*). Optionally includes the diagrams.
+- **Markdown** — the same tables as Markdown.
+- **UML-diagram (SVG)** — one card per object type with `name : Type [cardinality]`; root type highlighted.
+- **XSD-diagram (SVG)** — the content model drawn as a tree (root element, one frame per complex type, arrows to referenced types; dashed frame = optional element).
+
+The generators live in `lib/`: `eksport.ts` (shared metadata + grouping), `eksportDok.ts` (HTML/Markdown), `umlSvg.ts`, `xsdDiagramSvg.ts` and `svgTekst.ts` (text measurement — SVG is produced without a browser, so glyph widths are estimated).
 
 Other modules:
 
@@ -84,7 +102,7 @@ Other modules:
 ## Project structure
 
 ```
-app/         Next.js App Router: layout.tsx, page.tsx, global CSS
+app/         Next.js App Router: layout.tsx, page.tsx, print/page.tsx, global CSS
 components/   React components (admin, brevmaler, regler, shared, struktur, workspace/tabs)
 lib/         Domain logic + Supabase integration, and __tests__/
 data/         Static seed data for Høring og offentlig ettersyn V2
@@ -105,4 +123,4 @@ The `data/hoeringOgOffentligEttersynV2.*.ts` files hold the model's static/seed 
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test` | Run tests (Vitest) |
 
-Tests live in `lib/__tests__/` (`diskusjon`, `regler`, `umlMermaid`, `xsd`).
+Tests live in `lib/__tests__/` (`diskusjon`, `diff`, `eksport`, `omtaler`, `regler`, `sistLest`, `umlMermaid`, `xsd`).
